@@ -38,7 +38,7 @@ const pick = (pal: string[], b: number) => pal[Math.floor(clamp01(b) * pal.lengt
 
 export function bloomEase(elapsed: number, duration = 5): number {
   const t = Math.min(1, Math.max(0, elapsed / duration));
-  return 1 - (1 - t) ** 3;
+  return t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2;
 }
 
 export function emptyGrid(cols: number, rows: number): Grid {
@@ -49,7 +49,7 @@ export function renderFrame(scene: Scene, o: FrameOpts): Grid {
   const { cols, rows, cellAspect } = o;
   const g = emptyGrid(cols, rows);
   const zbuf = new Float64Array(cols * rows).fill(-1e9);
-  const scale = Math.max(1, Math.min((rows - 2) / 1.6, (cols / 2 - 1.5) / (1.12 * cellAspect)));
+  const scale = Math.max(1, Math.min((rows - 2) / 1.6, (cols / 2 - 1.5) / (0.9 * cellAspect)));
   const sx = scale * cellAspect;
   const cx = cols / 2;
   const cy = rows / 2 + 0.02 * scale;

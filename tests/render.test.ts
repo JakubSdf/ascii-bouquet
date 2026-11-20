@@ -53,6 +53,7 @@ describe("bloomEase", () => {
       expect(bloomEase(t)).toBeGreaterThanOrEqual(prev);
       prev = bloomEase(t);
     }
-    expect(bloomEase(2, 4)).toBeCloseTo(0.875);
+    expect(bloomEase(2, 4)).toBeCloseTo(0.5);
+    expect(bloomEase(1, 4)).toBeCloseTo(0.0625);
   });
 });
