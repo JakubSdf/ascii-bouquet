@@ -7,7 +7,7 @@ Make someone a spinning 3D bouquet out of text characters, write them a note, an
 ## Send a bouquet
 
 1. Open the site and tap flowers to add them: rose, daisy, tulip, sunflower, lavender, lily, forget-me-not or baby's breath. Each tap puts one stem into **Your bouquet** (up to 8, all of one kind if you like). Tap a stem there to take it out. Hover a flower to see it up close.
-2. Go through the four steps (flowers, wrap, occasion, message). You can jump back to any step from the progress bar. Write who it's for, who it's from, and a short note (up to 120 characters).
+2. Go through the three steps (flowers, wrap, message). You can jump back to any step from the progress bar. Write who it's for, who it's from, and a short note (up to 120 characters).
 3. Press **Create link →**, then copy the link and send it, or open **QR code** for a pink code you can scan, save or print on a card.
 
 The recipient sees a small envelope first and opens it with a tap, so the bloom starts while they're looking.

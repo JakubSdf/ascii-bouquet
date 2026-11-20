@@ -41,6 +41,11 @@ export function bloomEase(elapsed: number, duration = 5): number {
   return t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2;
 }
 
+export function bloomFrom(elapsed: number, from: number, duration: number): number {
+  const t = Math.min(1, Math.max(0, elapsed / duration));
+  return from + (1 - from) * (1 - (1 - t) ** 3);
+}
+
 export function emptyGrid(cols: number, rows: number): Grid {
   return { cols, rows, chars: new Array(cols * rows).fill(" "), colors: new Array(cols * rows).fill("") };
 }

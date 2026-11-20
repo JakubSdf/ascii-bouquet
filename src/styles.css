@@ -373,7 +373,7 @@ textarea:focus-visible,
 
 .progress {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
 
@@ -391,19 +391,58 @@ textarea:focus-visible,
 }
 
 .progress-step i {
+  position: relative;
   grid-column: 1 / -1;
   height: 4px;
   border-radius: 2px;
   background: var(--border);
-  transition: background-color 240ms ease;
+  overflow: hidden;
 }
 
-.progress-step.done i {
-  background: var(--muted);
-}
-
-.progress-step.on i {
+.progress-step i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
   background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 520ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 240ms ease;
+}
+
+.progress-step.on i::after {
+  transform: scaleX(0.35);
+}
+
+.progress-step.done i::after {
+  transform: scaleX(1);
+}
+
+.progress-step.done .progress-num {
+  color: var(--accent);
+}
+
+.progress-step.just-done .progress-num {
+  display: inline-block;
+  animation: check-pop 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.progress-step.just-done i::after {
+  box-shadow: 0 0 12px var(--accent);
+}
+
+@keyframes check-pop {
+  0% {
+    transform: scale(0.3) rotate(-20deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.35) rotate(6deg);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
 }
 
 .progress-num {
@@ -452,7 +491,25 @@ textarea:focus-visible,
 
 .step.is-active {
   display: flex;
-  animation: rise 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: step-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.steps[data-dir="back"] .step.is-active {
+  animation-name: step-back;
+}
+
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+}
+
+@keyframes step-back {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
 }
 
 .step-hint {

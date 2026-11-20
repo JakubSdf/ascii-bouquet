@@ -33,7 +33,7 @@ const type = (el: HTMLInputElement | HTMLTextAreaElement, value: string) => {
   el.dispatchEvent(new Event("input", { bubbles: true }));
 };
 const shareCode = () => {
-  tab(3).click();
+  tab(2).click();
   button("Create link").click();
   const link = document.querySelector(".share-link")!.textContent!;
   return decodeConfig(link.split("#")[1]);
@@ -103,16 +103,26 @@ describe("mountBuilder", () => {
     expect(peek().hidden).toBe(true);
   });
 
+  test("three steps: flowers, wrap, then occasion with the message", () => {
+    expect(root.querySelectorAll(".progress-step").length).toBe(3);
+    expect([...root.querySelectorAll(".progress-name")].map((n) => n.textContent)).toEqual(["Flowers", "Wrap", "Message"]);
+    const last = root.querySelector('.step[data-step="2"]')!;
+    expect(last.querySelector(".chip")).not.toBeNull();
+    expect(last.querySelector('[name="message"]')).not.toBeNull();
+  });
+
   test("a step-by-step wizard that can always go back", () => {
     expect(activeStep()).toBe("0");
     button("Next").click();
     expect(activeStep()).toBe("1");
     expect(tab(0).classList.contains("done")).toBe(true);
-    tab(3).click();
-    expect(activeStep()).toBe("3");
+    expect(tab(0).querySelector(".progress-num")!.textContent).toBe("✓");
+    tab(2).click();
+    expect(activeStep()).toBe("2");
     expect(button("Create link")).toBeTruthy();
     tab(0).click();
     expect(activeStep()).toBe("0");
+    expect(tab(0).querySelector(".progress-num")!.textContent).toBe("1");
     expect(tab(0).getAttribute("aria-current")).toBe("step");
   });
 
@@ -140,7 +150,7 @@ describe("mountBuilder", () => {
   });
 
   test("escape closes the share dialog", () => {
-    tab(3).click();
+    tab(2).click();
     button("Create link").click();
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     expect(document.querySelector(".share-dialog")).toBeNull();

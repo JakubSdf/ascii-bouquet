@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { DEFAULT_CONFIG, FLOWERS } from "../src/core/catalog";
-import { bloomEase, renderFrame, type FrameOpts } from "../src/core/render";
+import { bloomEase, bloomFrom, renderFrame, type FrameOpts } from "../src/core/render";
 import { buildScene, GREENS } from "../src/core/scene";
 
 const scene = buildScene(DEFAULT_CONFIG);
@@ -64,5 +64,15 @@ describe("bloomEase", () => {
     }
     expect(bloomEase(2, 4)).toBeCloseTo(0.5);
     expect(bloomEase(1, 4)).toBeCloseTo(0.0625);
+  });
+});
+
+describe("bloomFrom", () => {
+  test("replays the bloom from a later stage", () => {
+    expect(bloomFrom(0, 0.4, 2)).toBeCloseTo(0.4);
+    expect(bloomFrom(2, 0.4, 2)).toBe(1);
+    expect(bloomFrom(5, 0.4, 2)).toBe(1);
+    expect(bloomFrom(1, 0.4, 2)).toBeGreaterThan(0.4);
+    expect(bloomFrom(1, 0.4, 2)).toBeLessThan(1);
   });
 });

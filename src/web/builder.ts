@@ -1,6 +1,6 @@
 import { DEFAULT_CONFIG, FLOWERS, LIMITS, OCCASIONS, WRAPS } from "../core/catalog";
 import { decodeConfig, encodeConfig } from "../core/codec";
-import { bloomEase, renderFrame } from "../core/render";
+import { bloomFrom, renderFrame, type Grid } from "../core/render";
 import { buildPortrait, buildScene, type Scene } from "../core/scene";
 import type { BouquetConfig, FlowerId, OccasionId, WrapId } from "../core/types";
 import { GridCanvas } from "./canvas";
@@ -10,7 +10,7 @@ import { openShareDialog } from "./share";
 import { showToast } from "./toast";
 
 const DRAFT_KEY = "ascii-bouquet:draft";
-const STEPS = ["Flowers", "Wrap", "Occasion", "Message"];
+const STEPS = ["Flowers", "Wrap", "Message"];
 
 interface Draft {
   config: BouquetConfig;
@@ -48,7 +48,9 @@ export function mountBuilder(root: HTMLElement): () => void {
   const state = draft.config;
   let step = 0;
   let scene: Scene = buildScene(state);
-  let bloomStart = -1e9;
+  let replay = { start: -1e9, from: 1, dur: 1 };
+  let burstStart = -1e9;
+  let typeStart = -1e9;
   const reduced = prefersReducedMotion();
 
   const persist = () => saveDraft({ config: state, touched: draft.touched });
@@ -133,20 +135,22 @@ export function mountBuilder(root: HTMLElement): () => void {
     changed(false);
   });
 
-  const STEP_HINTS = ["Pick up to 8 flowers.", "Choose the paper and ribbon.", "What's the occasion?", "Who is it for, and what do you want to say?"];
+  const STEP_HINTS = ["Pick up to 8 flowers.", "Choose the paper and ribbon.", "Pick the occasion, then write your note."];
   const section = (i: number, ...content: Node[]) =>
     h("section", { class: "step", "data-step": i }, h("p", { class: "step-hint muted" }, STEP_HINTS[i]), ...content);
 
+  const stepsEl = h("div", { class: "steps" });
   const steps = [
     section(0, tray, flowerGrid),
     section(1, swatchRow),
-    section(2, chipRow),
-    section(3,
+    section(2,
+      h("div", { class: "field" }, h("span", { class: "field-label" }, "Occasion"), chipRow),
       h("div", { class: "field-row" }, textField("to", "To", "Anna"), textField("from", "From", "Tom")),
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Note ", counter), messageInput),
     ),
   ];
 
+  stepsEl.append(...steps);
   const create = () => openShareDialog(state, location.origin);
   const backBtn = h("button", { class: "btn", type: "button", "aria-label": "Previous step", onclick: () => go(step - 1) }, "←");
   const nextBtn = h("button", { class: "btn btn-primary", type: "button", onclick: () => (step < STEPS.length - 1 ? go(step + 1) : create()) });
@@ -170,7 +174,7 @@ export function mountBuilder(root: HTMLElement): () => void {
     ),
     h("div", { class: "hints muted small" },
       h("span", {}, "↻ live preview"),
-      h("button", { class: "link-btn", type: "button", onclick: () => (bloomStart = performance.now()) }, "▶ replay bloom"),
+      h("button", { class: "link-btn", type: "button", onclick: () => (replay = { start: performance.now(), from: 0, dur: 5 }) }, "▶ replay bloom"),
     ),
   );
 
@@ -185,9 +189,9 @@ export function mountBuilder(root: HTMLElement): () => void {
     ),
     h("div", { class: "builder-body" },
       h("aside", { class: "controls" },
-        h("div", { class: "intro" }, h("h1", {}, "Make someone a bouquet."), h("p", { class: "muted" }, "Four quick steps, then send a link.")),
+        h("div", { class: "intro" }, h("h1", {}, "Make someone a bouquet."), h("p", { class: "muted" }, "Three quick steps, then send a link.")),
         progress,
-        h("div", { class: "steps" }, ...steps),
+        stepsEl,
         h("div", { class: "bottom-bar" }, backBtn, nextBtn),
       ),
       preview,
@@ -229,15 +233,30 @@ export function mountBuilder(root: HTMLElement): () => void {
   }
 
   function go(i: number) {
-    step = Math.max(0, Math.min(STEPS.length - 1, i));
+    const next = Math.max(0, Math.min(STEPS.length - 1, i));
+    const forward = next > step;
+    const left = step;
+    step = next;
+    stepsEl.dataset.dir = forward ? "forward" : "back";
     sync();
+    if (!forward || reduced) return;
+    const now = performance.now();
+    burstStart = now;
+    const done = tabs[left];
+    done.classList.remove("just-done");
+    void done.offsetWidth;
+    done.classList.add("just-done");
+    if (left === 0) replay = { start: now, from: 0.15, dur: 3 };
+    else replay = { start: now, from: 0.4, dur: 2.2 };
+    if (step === STEPS.length - 1) typeStart = now + 400;
   }
 
   function changed(geometry: boolean) {
     if (geometry) {
       scene = buildScene(state);
-      if (!reduced) bloomStart = performance.now() - 2600;
+      if (!reduced) replay = { start: performance.now(), from: 0.5, dur: 1.6 };
     }
+    typeStart = -1e9;
     persist();
     sync();
   }
@@ -272,12 +291,12 @@ export function mountBuilder(root: HTMLElement): () => void {
     for (const [id, btn] of chips) btn.setAttribute("aria-pressed", String(id === state.occasion));
     counter.textContent = `${[...state.message].length} / ${LIMITS.message}`;
     previewTitle.textContent = `~/for-${(state.to || "you").toLowerCase().replace(/\s+/g, "-")} — live preview`;
-    previewMsg.textContent = state.message;
     previewFrom.textContent = state.from ? `— ${state.from}` : "";
     steps.forEach((s, i) => s.classList.toggle("is-active", i === step));
     tabs.forEach((t, i) => {
       t.classList.toggle("on", i === step);
       t.classList.toggle("done", i < step);
+      t.querySelector(".progress-num")!.textContent = i < step ? "✓" : String(i + 1);
       if (i === step) t.setAttribute("aria-current", "step");
       else t.removeAttribute("aria-current");
     });
@@ -290,8 +309,15 @@ export function mountBuilder(root: HTMLElement): () => void {
   const start = performance.now();
   const stop = onFrame((now) => {
     const t = (now - start) / 1000;
-    const bloom = reduced ? 1 : bloomEase((now - bloomStart) / 1000, 6);
-    gc.draw(renderFrame(scene, { cols: gc.cols, rows: gc.rows, t, angle: t * (reduced ? 0.15 : 0.6), tilt: 0.3, bloom, cellAspect: gc.cellAspect }));
+    const bloom = reduced ? 1 : bloomFrom((now - replay.start) / 1000, replay.from, replay.dur);
+    const g = renderFrame(scene, { cols: gc.cols, rows: gc.rows, t, angle: t * (reduced ? 0.15 : 0.6), tilt: 0.3, bloom, cellAspect: gc.cellAspect });
+    const since = now - burstStart;
+    if (since < 1100) drawBurst(g, since / 1100, gc.cellAspect);
+    gc.draw(g);
+    const chars = [...state.message];
+    const n = now < typeStart ? 0 : typeStart > 0 ? Math.min(chars.length, Math.floor((now - typeStart) / 28)) : chars.length;
+    const shown = chars.slice(0, n).join("");
+    if (previewMsg.textContent !== shown) previewMsg.textContent = shown;
   });
 
   return () => {
@@ -300,6 +326,27 @@ export function mountBuilder(root: HTMLElement): () => void {
     peek.destroy();
     view.remove();
   };
+}
+
+const BURST = ["*", "+", "·", "*", "♥"];
+const BURST_COLORS = ["#ffd7ff", "#ffafd7", "#ff87af", "#ff5f87", "#d7005f"];
+
+function drawBurst(g: Grid, p: number, aspect: number) {
+  const ease = 1 - (1 - p) ** 3;
+  const cx = g.cols / 2;
+  const cy = g.rows / 2;
+  const R = Math.min(g.rows * 0.48, g.cols / aspect / 2);
+  for (let k = 0; k < 28; k++) {
+    const a = (k / 28) * Math.PI * 2 + (k % 2) * 0.11;
+    const r = R * (0.55 + 0.45 * ease) * (k % 3 === 0 ? 1 : 0.86);
+    const col = Math.round(cx + Math.cos(a) * r * aspect);
+    const row = Math.round(cy + Math.sin(a) * r);
+    if (col < 1 || row < 1 || col >= g.cols - 1 || row >= g.rows - 1) continue;
+    const i = row * g.cols + col;
+    if (g.chars[i] !== " ") continue;
+    g.chars[i] = BURST[(k + Math.floor(p * 6)) % BURST.length];
+    g.colors[i] = BURST_COLORS[Math.min(BURST_COLORS.length - 1, Math.floor(p * BURST_COLORS.length))];
+  }
 }
 
 function flowerPeek() {
