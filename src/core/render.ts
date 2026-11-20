@@ -20,6 +20,7 @@ export interface FrameOpts {
 
 const SHADE = ".:-=+*%@";
 const PETAL = "+*#%";
+const LEAF = ".-~=";
 const CAM = 4;
 const PIVOT_Y = 0.2;
 const LIGHT = (() => {
@@ -85,7 +86,8 @@ export function renderFrame(scene: Scene, o: FrameOpts): Grid {
     let dot = nxr * LIGHT[0] + nyt * LIGHT[1] + nzt * LIGHT[2];
     if (p.twoSided && dot < 0) dot = -dot * 0.55;
     const b = clamp01(0.25 + 0.75 * Math.max(0, dot) + p.tone);
-    const ch = p.glyph ?? (p.part === "spike" ? PETAL[Math.floor(b * PETAL.length)] : SHADE[Math.floor(b * SHADE.length)]);
+    const ramp = p.part === "spike" ? PETAL : p.part === "leaf" ? LEAF : SHADE;
+    const ch = p.glyph ?? ramp[Math.floor(b * ramp.length)];
     plot(Math.floor(fx), Math.floor(fy), zt, ch, pick(p.palette, b));
   }
 
