@@ -112,22 +112,7 @@ export function buildScene(c: BouquetConfig): Scene {
     const headStage = 0.5 + 0.35 * (n > 1 ? i / (n - 1) : 0);
     const spec = FLOWERS[id];
     if (spec.kind === "spike") {
-      for (let k = 0; k < 16; k++) {
-        const t = k / 15;
-        const p = add(pos, axis, 0.2 * t - 0.02);
-        const r = 0.035 * (1 - 0.6 * t);
-        for (let a = 0; a < 5; a++) {
-          const ang = (a / 5) * Math.PI * 2 + k;
-          const [u, v] = basisOf(axis);
-          const d = norm([u[0] * Math.cos(ang) + v[0] * Math.sin(ang), u[1] * Math.cos(ang) + v[1] * Math.sin(ang), u[2] * Math.cos(ang) + v[2] * Math.sin(ang)]);
-          points.push({
-            x: p[0] + d[0] * r, y: p[1] + d[1] * r, z: p[2] + d[2] * r,
-            nx: d[0], ny: d[1], nz: d[2],
-            palette: spec.palette, tone: 0.05, twoSided: true, part: "spike",
-            stage: Math.min(1, headStage + 0.15 * t),
-          });
-        }
-      }
+      addSpike(points, pos, axis, spec.palette, headStage, 0.2, 0.035);
     } else {
       heads.push({
         x: pos[0], y: pos[1], z: pos[2], flower: id,
@@ -252,6 +237,57 @@ export function buildScene(c: BouquetConfig): Scene {
   }
 
   return { points, heads, sparkles, babies };
+}
+
+function addSpike(points: Pt[], pos: V3, axis: V3, palette: string[], stage: number, length: number, width: number) {
+  const [u, v] = basisOf(axis);
+  const steps = Math.round(length * 80);
+  for (let k = 0; k < steps; k++) {
+    const t = k / (steps - 1);
+    const p = add(pos, axis, length * t - 0.02);
+    const r = width * (1 - 0.6 * t);
+    for (let a = 0; a < 5; a++) {
+      const ang = (a / 5) * Math.PI * 2 + k;
+      const d = norm([u[0] * Math.cos(ang) + v[0] * Math.sin(ang), u[1] * Math.cos(ang) + v[1] * Math.sin(ang), u[2] * Math.cos(ang) + v[2] * Math.sin(ang)]);
+      points.push({
+        x: p[0] + d[0] * r, y: p[1] + d[1] * r, z: p[2] + d[2] * r,
+        nx: d[0], ny: d[1], nz: d[2],
+        palette, tone: 0.05, twoSided: true, part: "spike",
+        stage: Math.min(1, stage + 0.15 * t),
+      });
+    }
+  }
+}
+
+export function buildPortrait(id: FlowerId): Scene {
+  const spec = FLOWERS[id];
+  const rnd = mulberry32(hashString(id));
+  const points: Pt[] = [];
+  const heads: Head[] = [];
+  const babies: Sparkle[] = [];
+  const top = spec.kind === "spike" ? -0.05 : 0.2;
+  for (let j = 0; j < 90; j++) {
+    const t = j / 89;
+    points.push({ x: 0.02 * Math.sin(t * 3), y: top - 0.75 * t, z: 0, nx: 1, ny: 0, nz: 0.3, palette: GREENS, tone: -0.1, twoSided: true, part: "stem", stage: 0 });
+  }
+  for (const side of [-1, 1]) {
+    for (let ti = 0; ti < 20; ti++) {
+      const t = ti / 19;
+      for (let wi = -3; wi <= 3; wi++) {
+        const w = (wi / 3) * 0.05 * Math.sin(Math.PI * t);
+        points.push({ x: side * 0.28 * t, y: -0.3 + 0.12 * t - 0.08 * t * t + w, z: 0.02, nx: 0, ny: 0.3, nz: 1, palette: GREENS, tone: wi === 0 ? -0.2 : 0, twoSided: true, part: "leaf", stage: 0 });
+      }
+    }
+  }
+  if (spec.kind === "spike") addSpike(points, [0, -0.05, 0], [0, 1, 0], spec.palette, 0, 0.7, 0.09);
+  else if (spec.kind === "cloud") {
+    for (let i = 0; i < 70; i++) {
+      const a = rnd() * 2 * Math.PI;
+      const r = 0.1 + rnd() * 0.32;
+      babies.push({ x: r * Math.cos(a), y: 0.32 + r * Math.sin(a) * 0.7, z: (rnd() - 0.5) * 0.2, phase: rnd() * 6.28, speed: 2 });
+    }
+  } else heads.push({ x: 0, y: 0.36, z: 0, flower: id, radius: spec.kind === "tulip" ? 0.5 : 0.62, seed: 0.4, stage: 0 });
+  return { points, heads, sparkles: [], babies };
 }
 
 function basisOf(axis: V3): [V3, V3] {

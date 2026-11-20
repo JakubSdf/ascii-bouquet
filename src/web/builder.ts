@@ -1,7 +1,7 @@
 import { DEFAULT_CONFIG, FLOWERS, LIMITS, OCCASIONS, WRAPS } from "../core/catalog";
 import { decodeConfig, encodeConfig } from "../core/codec";
 import { bloomEase, renderFrame } from "../core/render";
-import { buildScene, type Scene } from "../core/scene";
+import { buildPortrait, buildScene, type Scene } from "../core/scene";
 import type { BouquetConfig, FlowerId, OccasionId, WrapId } from "../core/types";
 import { GridCanvas } from "./canvas";
 import { h, onFrame, prefersReducedMotion } from "./dom";
@@ -50,6 +50,7 @@ export function mountBuilder(root: HTMLElement): () => void {
 
   const persist = () => saveDraft({ config: state, touched: draft.touched });
 
+  const peek = flowerPeek();
   const flowerCards = new Map<FlowerId, { card: HTMLElement; toggle: HTMLButtonElement; minus: HTMLButtonElement; plus: HTMLButtonElement; qty: HTMLElement }>();
   const flowerGrid = h("div", { class: "flower-grid" });
   const flowerTotal = h("span", { class: "flower-total muted small" });
@@ -64,6 +65,12 @@ export function mountBuilder(root: HTMLElement): () => void {
     const qty = h("span", { class: "flower-qty", "aria-live": "polite" });
     const card = h("div", { class: "flower", "data-id": id }, toggle, h("div", { class: "flower-stepper" }, minus, qty, plus));
     toggle.addEventListener("click", () => toggleFlower(id, card));
+    card.addEventListener("pointerenter", (e) => {
+      if ((e as PointerEvent).pointerType !== "touch") peek.show(id, card);
+    });
+    card.addEventListener("pointerleave", () => peek.hide());
+    toggle.addEventListener("focus", () => peek.show(id, card));
+    toggle.addEventListener("blur", () => peek.hide());
     minus.addEventListener("click", () => adjustCount(id, -1));
     plus.addEventListener("click", () => adjustCount(id, 1, card));
     flowerCards.set(id, { card, toggle, minus, plus, qty });
@@ -119,11 +126,21 @@ export function mountBuilder(root: HTMLElement): () => void {
     changed(false);
   });
 
-  const section = (i: number, hint: string | null, ...content: Node[]) =>
-    h("section", { class: "step", "data-step": i },
-      h("h2", { class: "step-title" }, h("span", { class: "accent" }, String(i + 1).padStart(2, "0")), STEPS[i], hint ? h("span", { class: "muted small" }, hint) : null),
-      ...content,
+  const summaries: HTMLElement[] = [];
+  const heads: HTMLButtonElement[] = [];
+  const section = (i: number, hint: string | null, ...content: Node[]) => {
+    const summary = h("span", { class: "step-summary" });
+    const head = h("button", { class: "step-head", type: "button", "aria-expanded": "false", onclick: () => go(i) },
+      h("span", { class: "accent step-num" }, String(i + 1).padStart(2, "0")),
+      h("span", { class: "step-name" }, STEPS[i]),
+      hint ? h("span", { class: "muted small step-hint" }, hint) : null,
+      summary,
+      h("span", { class: "step-chevron", "aria-hidden": "true" }, "›"),
     );
+    summaries.push(summary);
+    heads.push(head);
+    return h("section", { class: "step", "data-step": i }, head, h("div", { class: "step-body" }, ...content));
+  };
 
   const steps = [
     section(0, "up to 8 in total", flowerTotal, flowerGrid),
@@ -246,6 +263,11 @@ export function mountBuilder(root: HTMLElement): () => void {
     previewMsg.textContent = state.message;
     previewFrom.textContent = state.from ? `— ${state.from}` : "";
     steps.forEach((s, i) => s.classList.toggle("is-active", i === step));
+    heads.forEach((b, i) => b.setAttribute("aria-expanded", String(i === step)));
+    summaries[0].textContent = `${state.flowers.map((f) => FLOWERS[f.id].name + (f.count > 1 ? ` ×${f.count}` : "")).join(", ")} · ${total}/${LIMITS.maxTotal}`;
+    summaries[1].textContent = WRAPS[state.wrap].label;
+    summaries[2].textContent = `${OCCASIONS[state.occasion].icon} ${OCCASIONS[state.occasion].label}`;
+    summaries[3].textContent = [state.to && `to ${state.to}`, state.message && `“${state.message}”`].filter(Boolean).join(" · ") || "add a note";
     progress.replaceChildren(...STEPS.map((_, i) => h("i", { class: i === step ? "on" : i < step ? "done" : "" })));
     progressLabel.textContent = `${step + 1} / ${STEPS.length}  ${STEPS[step]}`;
     backBtn.disabled = step === 0;
@@ -264,6 +286,52 @@ export function mountBuilder(root: HTMLElement): () => void {
   return () => {
     stop();
     gc.destroy();
+    peek.destroy();
     view.remove();
   };
+}
+
+function flowerPeek() {
+  const name = h("p", { class: "strong" });
+  const meaning = h("p", { class: "muted small" });
+  const host = h("div", { class: "flower-peek-canvas" });
+  const el = h("div", { class: "flower-peek", hidden: true, "aria-hidden": "true" }, host, h("div", { class: "flower-peek-text" }, name, meaning));
+  document.body.append(el);
+  let gc: GridCanvas | null = null;
+  let stop: (() => void) | null = null;
+  let current: FlowerId | null = null;
+
+  const hide = () => {
+    el.hidden = true;
+    current = null;
+    stop?.();
+    stop = null;
+  };
+
+  const show = (id: FlowerId, anchor: HTMLElement) => {
+    if (current === id && !el.hidden) return;
+    hide();
+    current = id;
+    const spec = FLOWERS[id];
+    name.textContent = spec.name;
+    meaning.textContent = spec.meaning;
+    el.hidden = false;
+    const r = anchor.getBoundingClientRect();
+    const panel = anchor.closest(".controls")?.getBoundingClientRect() ?? r;
+    const w = 240;
+    const left = panel.right + 16 + w < window.innerWidth ? panel.right + 16 : Math.max(8, r.left - w - 12);
+    el.style.left = `${left}px`;
+    el.style.top = `${Math.max(8, Math.min(window.innerHeight - 220, r.top - 20))}px`;
+    gc ??= new GridCanvas(host, { targetCols: 40, targetRows: 18, maxFontSize: 10, minFontSize: 6 });
+    gc.fit();
+    const scene = buildPortrait(id);
+    const start = performance.now();
+    const reduced = prefersReducedMotion();
+    stop = onFrame((now) => {
+      const t = (now - start) / 1000;
+      gc!.draw(renderFrame(scene, { cols: gc!.cols, rows: gc!.rows, t, angle: 0.4 + t * (reduced ? 0 : 0.8), tilt: 0.15, bloom: 1, cellAspect: gc!.cellAspect }));
+    });
+  };
+
+  return { show, hide, destroy: () => (hide(), gc?.destroy(), el.remove()) };
 }

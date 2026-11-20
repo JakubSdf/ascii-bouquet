@@ -92,6 +92,28 @@ describe("mountBuilder", () => {
     expect(minus("rose").disabled).toBe(true);
   });
 
+  test("steps fold like an accordion with summaries", () => {
+    const steps = () => [...root.querySelectorAll<HTMLElement>(".step")];
+    expect(steps()[0].classList.contains("is-active")).toBe(true);
+    root.querySelector<HTMLButtonElement>('.step[data-step="3"] .step-head')!.click();
+    expect(steps()[3].classList.contains("is-active")).toBe(true);
+    expect(steps()[0].classList.contains("is-active")).toBe(false);
+    expect(steps()[0].querySelector(".step-summary")!.textContent).toBe("Rose ×2, Daisy, Sunflower · 4/8");
+    expect(steps()[1].querySelector(".step-summary")!.textContent).toBe("pink ribbon");
+    expect(steps()[2].querySelector(".step-summary")!.textContent).toBe("♥ Love");
+    expect(root.querySelector('.step[data-step="3"] .step-head')!.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  test("hovering a flower previews it", () => {
+    const peek = () => document.querySelector<HTMLElement>(".flower-peek")!;
+    card("lily").dispatchEvent(new Event("pointerenter"));
+    expect(peek().hidden).toBe(false);
+    expect(peek().textContent).toContain("Lily");
+    expect(peek().textContent).toContain("renewal");
+    card("lily").dispatchEvent(new Event("pointerleave"));
+    expect(peek().hidden).toBe(true);
+  });
+
   test("lily is offered", () => {
     toggle("lily").click();
     expect(picked("lily")).toBe(true);

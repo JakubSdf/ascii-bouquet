@@ -180,11 +180,6 @@ textarea:focus-visible,
   font-size: 36px;
 }
 
-.gift-footnote {
-  position: absolute;
-  bottom: max(24px, env(safe-area-inset-bottom));
-}
-
 .gift-stage {
   flex: 1;
   width: 100%;
@@ -360,7 +355,7 @@ textarea:focus-visible,
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 0;
   padding: 28px 32px;
   border-right: 1px solid var(--border);
   overflow-y: auto;
@@ -371,6 +366,10 @@ textarea:focus-visible,
   font-size: 22px;
 }
 
+.intro {
+  margin-bottom: 18px;
+}
+
 .intro p {
   margin: 0;
   font-size: 13px;
@@ -379,19 +378,75 @@ textarea:focus-visible,
 .step {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
-.step-title {
+.step-head {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin: 0;
+  width: 100%;
+  padding: 14px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: none;
+  text-align: left;
   font-size: 14px;
+  font-weight: 700;
 }
 
-.step-title .accent {
+.step:first-of-type .step-head {
+  border-top: 0;
+}
+
+.step-num {
   font-size: 12px;
+}
+
+.step-hint,
+.step-summary {
+  font-weight: 400;
+}
+
+.step-summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.step-chevron {
+  color: var(--muted);
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.step.is-active .step-chevron {
+  transform: rotate(90deg);
+  color: var(--accent);
+}
+
+.step.is-active .step-summary {
+  visibility: hidden;
+}
+
+.step-head:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.step-body {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 16px;
+}
+
+.step.is-active .step-body {
+  display: flex;
+  animation: rise 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .flower-grid {
@@ -779,10 +834,12 @@ textarea:focus-visible,
   }
   .step.is-active {
     display: flex;
-    animation: rise 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
-  .step-title {
+  .step-head {
     display: none;
+  }
+  .step-body {
+    padding-bottom: 0;
   }
   .flower-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -818,7 +875,9 @@ textarea:focus-visible,
 }
 
 .share-dialog {
-  width: min(560px, 100%);
+  width: min(580px, 100%);
+  max-height: 100dvh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -875,10 +934,32 @@ textarea:focus-visible,
   background: var(--bg);
 }
 
+.share-term-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
 .share-terminal {
-  font-size: 13px;
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.5;
   overflow-wrap: anywhere;
   user-select: all;
+}
+
+.share-terminal::before {
+  content: "$ ";
+  color: var(--accent);
+  user-select: none;
+}
+
+.btn-small {
+  flex: none;
+  padding: 7px 12px;
+  font-size: 12px;
+  border-radius: 8px;
 }
 
 .share-back {
@@ -916,10 +997,6 @@ textarea:focus-visible,
   animation: rise 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-.share-qr[hidden] {
-  display: none;
-}
-
 .share-qr-art {
   width: 168px;
   flex: none;
@@ -939,6 +1016,10 @@ textarea:focus-visible,
   gap: 6px;
 }
 
+.share-qr-side .share-actions {
+  margin-top: 8px;
+}
+
 .share-qr-side .strong {
   font-size: 15px;
 }
@@ -948,10 +1029,59 @@ textarea:focus-visible,
     flex-direction: column;
     text-align: center;
   }
-  .share-qr-side {
+  .share-qr-side,
+  .share-qr-side .share-actions {
     align-items: center;
+    justify-content: center;
   }
   .share-qr-art {
     width: 200px;
+  }
+}
+
+.flower-peek {
+  position: fixed;
+  z-index: 5;
+  width: 240px;
+  padding: 10px 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 135 175 / 0.08);
+  pointer-events: none;
+  transform-origin: left center;
+  animation: pop 160ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.flower-peek[hidden] {
+  display: none;
+}
+
+.flower-peek-canvas {
+  position: relative;
+  height: 190px;
+}
+
+.flower-peek-canvas > .grid-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.flower-peek-text {
+  padding: 4px 4px 0;
+}
+
+.flower-peek-text p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.flower-peek-text .small {
+  font-size: 11px;
+}
+
+@media (hover: none) {
+  .flower-peek {
+    display: none;
   }
 }

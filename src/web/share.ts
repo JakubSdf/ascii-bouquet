@@ -3,6 +3,23 @@ import type { BouquetConfig } from "../core/types";
 import { h } from "./dom";
 import { qrPng, qrSvg } from "./qr";
 
+function copyButton(label: string, text: string, className: string, fallbackEl: HTMLElement): HTMLButtonElement {
+  const btn = h("button", { class: className, type: "button" }, label);
+  btn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = "Copied ✓";
+    } catch {
+      getSelection()?.selectAllChildren(fallbackEl);
+      btn.textContent = "Press ⌘C";
+    }
+    setTimeout(() => (btn.textContent = label), 2000);
+  });
+  return btn;
+}
+
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "you";
+
 export function openShareDialog(c: BouquetConfig, origin: string): () => void {
   for (const old of document.querySelectorAll(".share-overlay")) old.dispatchEvent(new CustomEvent("share-close"));
   const code = encodeConfig(c);
@@ -11,47 +28,25 @@ export function openShareDialog(c: BouquetConfig, origin: string): () => void {
   const name = c.to || "them";
   const opener = document.activeElement as HTMLElement | null;
 
-  const copyBtn = h("button", { class: "btn btn-primary", type: "button" }, "Copy");
-  copyBtn.addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(link);
-      copyBtn.textContent = "Copied ✓";
-    } catch {
-      linkEl.focus();
-      getSelection()?.selectAllChildren(linkEl);
-      copyBtn.textContent = "Select & copy";
-    }
-    setTimeout(() => (copyBtn.textContent = "Copy"), 2000);
-  });
+  const linkEl = h("code", { class: "share-link", tabindex: "0" }, link);
+  const cmdEl = h("code", { class: "share-terminal" }, command);
 
   const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
   const shareBtn = canShare
     ? h("button", { class: "btn", type: "button", onclick: () => navigator.share({ title: "A bouquet for you ✿", url: link }).catch(() => undefined) }, "↗ Share…")
     : null;
 
-  const qrBox = h("div", { class: "share-qr", hidden: true });
-  const qrBtn = h("button", { class: "btn", type: "button", "aria-expanded": "false" }, "◉ QR code");
-  qrBtn.addEventListener("click", () => {
-    const open = qrBox.hidden;
-    if (open && !qrBox.firstChild) {
-      const art = h("div", { class: "share-qr-art" });
-      art.innerHTML = qrSvg(link);
-      const save = h("button", { class: "link-btn accent", type: "button" }, "↓ Save image");
-      save.addEventListener("click", async () => {
-        const blob = await qrPng(link).catch(() => null);
-        if (!blob) return;
-        const a = h("a", { href: URL.createObjectURL(blob), download: `bouquet-for-${(c.to || "you").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png` });
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-      });
-      qrBox.append(art, h("div", { class: "share-qr-side" }, h("p", { class: "strong" }, "Scan to open"), h("p", { class: "muted small" }, "Print it on a card or tuck it into real flowers."), save));
-    }
-    qrBox.hidden = !open;
-    qrBtn.setAttribute("aria-expanded", String(open));
+  const art = h("div", { class: "share-qr-art" });
+  art.innerHTML = qrSvg(link);
+  const save = h("button", { class: "link-btn accent", type: "button" }, "↓ Save image");
+  save.addEventListener("click", async () => {
+    const blob = await qrPng(link).catch(() => null);
+    if (!blob) return;
+    const a = h("a", { href: URL.createObjectURL(blob), download: `bouquet-for-${slug(c.to)}.png` });
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
 
-  const linkEl = h("code", { class: "share-link", tabindex: "0" }, link);
-  const cmdEl = h("code", { class: "share-terminal" }, h("span", { class: "accent" }, "$ "), command);
   const close = () => {
     document.removeEventListener("keydown", onKey);
     overlay.remove();
@@ -61,17 +56,27 @@ export function openShareDialog(c: BouquetConfig, origin: string): () => void {
     if (e.key === "Escape") close();
   };
 
+  const copyLink = copyButton("Copy", link, "btn btn-primary", linkEl);
   const dialog = h("div", { class: "share-dialog", role: "dialog", "aria-modal": "true", "aria-labelledby": "share-title" },
     h("h2", { id: "share-title" }, h("span", { class: "accent" }, "✿ "), "Your bouquet is ready"),
     h("p", { class: "muted" }, `Send this link to ${name}. Everything lives inside the link, nothing is stored on our side.`),
-    h("div", { class: "share-row" }, linkEl, copyBtn),
-    h("div", { class: "share-actions" },
-      shareBtn,
-      qrBtn,
-      h("a", { class: "btn", href: link, target: "_blank", rel: "noopener" }, `▶ Preview as ${c.to || "them"}`),
+    h("div", { class: "share-row" }, linkEl, copyLink),
+    h("div", { class: "share-qr" },
+      art,
+      h("div", { class: "share-qr-side" },
+        h("p", { class: "strong" }, "Scan to open"),
+        h("p", { class: "muted small" }, "Print it on a card or tuck it into real flowers."),
+        save,
+        h("div", { class: "share-actions" },
+          shareBtn,
+          h("a", { class: "btn", href: link, target: "_blank", rel: "noopener" }, `▶ Preview as ${c.to || "them"}`),
+        ),
+      ),
     ),
-    qrBox,
-    h("div", { class: "share-term" }, h("p", { class: "muted small" }, "For a nerd? They can open it in a terminal:"), cmdEl),
+    h("div", { class: "share-term" },
+      h("p", { class: "muted small" }, "For a nerd? They can open it in a terminal:"),
+      h("div", { class: "share-term-row" }, cmdEl, copyButton("Copy", command, "btn btn-small", cmdEl)),
+    ),
     h("button", { class: "share-back muted small", type: "button", onclick: close }, "← back to edit"),
   );
   const overlay = h("div", { class: "share-overlay" }, dialog);
@@ -81,6 +86,6 @@ export function openShareDialog(c: BouquetConfig, origin: string): () => void {
   });
   document.addEventListener("keydown", onKey);
   document.body.append(overlay);
-  copyBtn.focus();
+  copyLink.focus();
   return close;
 }

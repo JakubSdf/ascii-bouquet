@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { DEFAULT_CONFIG, FLOWERS } from "../src/core/catalog";
 import type { BouquetConfig } from "../src/core/types";
-import { mountGift } from "../src/web/gift";
+import { dragAngle, mountGift, TYPE_DELAY } from "../src/web/gift";
 
 const cfg: BouquetConfig = { ...DEFAULT_CONFIG, to: "Anna", from: "Tom", message: "Every day with you blooms." };
 let unmount: (() => void) | null = null;
@@ -40,6 +40,21 @@ describe("mountGift", () => {
     const root = mount(cfg);
     expect(root.textContent).toContain("Tom sent you");
     expect(openButton(root)).toBeTruthy();
+  });
+
+  test("no duration footnote on the envelope", () => {
+    reducedMotion(false);
+    expect(mount(cfg).textContent).not.toContain("takes about");
+  });
+
+  test("dragging right turns the front of the bouquet to the right", () => {
+    const frontX = (angle: number) => -Math.sin(angle);
+    expect(frontX(dragAngle(0, 40))).toBeGreaterThan(0);
+    expect(frontX(dragAngle(0, -40))).toBeLessThan(0);
+  });
+
+  test("the message starts typing early in the bloom", () => {
+    expect(TYPE_DELAY).toBeLessThanOrEqual(1.5);
   });
 
   test("anonymous sender", () => {

@@ -20,8 +20,10 @@ const BUD = [
 ];
 const HEART_COLORS = ["#d7005f", "#ff5f87", "#ff87af", "#ff5faf", "#ffafd7", "#ffd7ff"];
 const BLOOM_SECONDS = 6;
-const TYPE_DELAY = 3;
-const TYPE_MS = 40;
+export const TYPE_DELAY = 1.2;
+const TYPE_MS = 34;
+
+export const dragAngle = (angle: number, dx: number) => angle - dx * 0.01;
 
 interface Heart { x: number; y: number; speed: number; phase: number; color: string }
 interface Petal { x: number; y: number; vx: number; vy: number; ch: string; color: string; born: number }
@@ -51,7 +53,6 @@ export function mountGift(root: HTMLElement, c: BouquetConfig | null): () => voi
     h("p", { class: "muted" }, `${c.from || "Someone"} sent you`),
     h("h1", { class: "serif gift-title" }, "a bouquet"),
     h("button", { class: "btn btn-primary", type: "button", onclick: () => open() }, "✿ Open it"),
-    h("p", { class: "muted small gift-footnote" }, "takes about 10 seconds ✿"),
   );
   view.append(envelope);
 
@@ -109,8 +110,8 @@ function animate(c: BouquetConfig, gc: GridCanvas, host: HTMLElement, stage: HTM
     if (!dragging) return;
     const dx = e.clientX - lastX;
     lastX = e.clientX;
-    angle += dx * 0.01;
-    velocity = dx * 0.6;
+    angle = dragAngle(angle, dx);
+    velocity = dragAngle(0, dx) * 60;
   };
   const onUp = (e: PointerEvent) => {
     dragging = false;

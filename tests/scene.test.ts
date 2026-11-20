@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { DEFAULT_CONFIG, WRAPS } from "../src/core/catalog";
-import { buildScene } from "../src/core/scene";
+import { buildPortrait, buildScene } from "../src/core/scene";
 import type { BouquetConfig } from "../src/core/types";
 
 const cfg = (p: Partial<BouquetConfig>): BouquetConfig => ({ ...DEFAULT_CONFIG, ...p });
@@ -61,5 +61,22 @@ describe("buildScene", () => {
     for (const p of s.points) expect(p.stage).toBeGreaterThanOrEqual(0), expect(p.stage).toBeLessThanOrEqual(1);
     const stemStart = Math.max(...s.points.filter((p) => p.part === "stem").map((p) => p.stage));
     for (const h of s.heads) expect(h.stage).toBeGreaterThanOrEqual(stemStart);
+  });
+});
+
+describe("buildPortrait", () => {
+  test("a head flower gets one big head and a stem", () => {
+    const s = buildPortrait("rose");
+    expect(s.heads.length).toBe(1);
+    expect(s.heads[0].flower).toBe("rose");
+    expect(s.heads[0].radius).toBeGreaterThan(0.3);
+    expect(s.points.some((p) => p.part === "stem")).toBe(true);
+    expect(s.points.some((p) => p.part === "paper")).toBe(false);
+  });
+
+  test("lavender is a spike and baby's breath a cloud", () => {
+    expect(buildPortrait("lavender").heads.length).toBe(0);
+    expect(buildPortrait("lavender").points.filter((p) => p.part === "spike").length).toBeGreaterThan(40);
+    expect(buildPortrait("babysbreath").babies.length).toBeGreaterThan(20);
   });
 });
