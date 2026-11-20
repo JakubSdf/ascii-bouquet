@@ -65,7 +65,7 @@ export function mountBuilder(root: HTMLElement): () => void {
     h("p", { class: "muted small tray-hint" }, "Tap a flower to add it. Tap a stem above to take it out."),
   );
 
-  const flowerCards = new Map<FlowerId, { card: HTMLButtonElement; count: HTMLElement }>();
+  const flowerCards = new Map<FlowerId, { card: HTMLButtonElement; count: HTMLElement; remove: HTMLButtonElement; cell: HTMLElement }>();
   const flowerGrid = h("div", { class: "flower-grid" });
   for (const [id, spec] of Object.entries(FLOWERS) as [FlowerId, (typeof FLOWERS)[FlowerId]][]) {
     const count = h("span", { class: "flower-count" });
@@ -82,8 +82,11 @@ export function mountBuilder(root: HTMLElement): () => void {
     card.addEventListener("pointerleave", () => peek.hide());
     card.addEventListener("focus", () => peek.show(id, card));
     card.addEventListener("blur", () => peek.hide());
-    flowerCards.set(id, { card, count });
-    flowerGrid.append(card);
+    const remove = h("button", { class: "flower-remove", type: "button", "data-id": id, "aria-label": `Take out a ${spec.name.toLowerCase()}`, hidden: true }, "−");
+    remove.addEventListener("click", () => removeStem(id, cell));
+    const cell = h("div", { class: "flower-cell" }, card, remove);
+    flowerCards.set(id, { card, count, remove, cell });
+    flowerGrid.append(cell);
   }
 
   const swatches = new Map<WrapId, HTMLButtonElement>();
@@ -182,7 +185,7 @@ export function mountBuilder(root: HTMLElement): () => void {
     h("header", { class: "topbar" },
       h("a", { class: "logo", href: "/" }, h("span", { class: "accent" }, "✿"), "ascii-bouquet"),
       h("nav", {},
-        h("a", { href: `${REPO_URL}#how-it-works`, target: "_blank", rel: "noopener" }, "How it works"),
+        h("a", { class: "hide-xs", href: `${REPO_URL}#how-it-works`, target: "_blank", rel: "noopener" }, "How it works"),
         h("a", { class: "hide-sm", href: `${REPO_URL}#open-one-in-your-terminal`, target: "_blank", rel: "noopener" }, "Run it in your terminal"),
         h("a", { href: REPO_URL, target: "_blank", rel: "noopener" }, "GitHub ★"),
       ),
@@ -267,7 +270,7 @@ export function mountBuilder(root: HTMLElement): () => void {
       ...Array.from({ length: LIMITS.maxTotal }, (_, i) => {
         const id = stems[i];
         if (!id) return h("span", { class: "tray-slot", "aria-hidden": "true" });
-        const slot = h("button", { class: "tray-slot is-filled", type: "button", "data-id": id, "aria-label": `Take out a ${FLOWERS[id].name.toLowerCase()}`, title: `Take out ${FLOWERS[id].name.toLowerCase()}` },
+        const slot = h("button", { class: "tray-slot is-filled", type: "button", "data-id": id, "aria-label": `Take out a ${FLOWERS[id].name.toLowerCase()}`, title: `Take out ${FLOWERS[id].name.toLowerCase()}`, style: `--stem:${glyphColor(id)}` },
           h("span", { style: `color:${glyphColor(id)}` }, FLOWERS[id].glyph),
         );
         slot.addEventListener("click", () => removeStem(id, slot));
@@ -285,6 +288,8 @@ export function mountBuilder(root: HTMLElement): () => void {
       c.card.setAttribute("aria-pressed", String(!!f));
       c.count.textContent = f ? `×${f.count}` : "";
       c.card.classList.toggle("is-full", total >= LIMITS.maxTotal);
+      c.remove.hidden = !f;
+      c.cell.classList.toggle("is-picked", !!f);
     }
     for (const [id, btn] of swatches) btn.setAttribute("aria-pressed", String(id === state.wrap));
     wrapLabel.textContent = WRAPS[state.wrap].label;

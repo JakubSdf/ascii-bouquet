@@ -88,6 +88,17 @@ describe("mountBuilder", () => {
     expect(stems().length).toBe(1);
   });
 
+  test("each picked flower has a remove button that takes one stem out", () => {
+    const remove = (id: string) => root.querySelector<HTMLButtonElement>(`.flower-remove[data-id="${id}"]`)!;
+    expect(remove("tulip").hidden).toBe(true);
+    expect(remove("rose").hidden).toBe(false);
+    remove("rose").click();
+    expect(stemsOf("rose").length).toBe(1);
+    expect(remove("rose").getAttribute("aria-label")).toBe("Take out a rose");
+    remove("rose").click();
+    expect(remove("rose").hidden).toBe(true);
+  });
+
   test("forget-me-not is offered", () => {
     card("forgetmenot").click();
     expect(stemsOf("forgetmenot").length).toBe(1);

@@ -615,7 +615,18 @@ textarea:focus-visible,
   gap: 8px;
 }
 
+.flower-cell {
+  position: relative;
+  display: flex;
+}
+
+.flower-remove {
+  display: none;
+}
+
 .flower {
+  flex: 1;
+  min-width: 0;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -909,6 +920,7 @@ textarea:focus-visible,
   }
   .hide-sm,
   .intro,
+  .step-hint,
   .hints,
   .preview-message,
   .preview-from,
@@ -932,7 +944,7 @@ textarea:focus-visible,
     padding: 8px 0;
   }
   .preview-canvas {
-    height: 26dvh;
+    height: 24dvh;
   }
   .controls {
     width: auto;
@@ -952,27 +964,89 @@ textarea:focus-visible,
     font-size: 12px;
   }
   .tray {
-    padding: 12px;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+  .tray-head {
+    font-size: 14px;
+  }
+  .tray-hint {
+    display: none;
+  }
+  .tray-slots {
+    gap: 4px;
   }
   .tray-slot {
-    font-size: 17px;
-    border-radius: 8px;
+    aspect-ratio: auto;
+    height: 8px;
+    border: 0;
+    border-radius: 4px;
+    background: var(--border);
+    font-size: 0;
+    pointer-events: none;
+  }
+  .tray-slot.is-filled {
+    border: 0;
+    background: var(--stem);
+    animation: none;
   }
   .tray-slot.is-filled::after {
-    opacity: 1;
-    transform: scale(0.85);
+    display: none;
   }
   .flower-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
   }
   .flower {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: baseline;
-    column-gap: 8px;
+    min-height: 100px;
+    padding: 14px;
+    gap: 4px;
+    border-radius: 16px;
+  }
+  .flower-glyph {
+    font-size: 26px;
+  }
+  .flower-name {
+    font-size: 15px;
   }
   .flower-meaning {
-    flex-basis: 100%;
+    font-size: 12px;
+  }
+  .flower-count {
+    top: 12px;
+    right: 14px;
+    font-size: 14px;
+  }
+  .flower-remove {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid var(--accent);
+    border-radius: 50%;
+    background: var(--bg);
+    color: var(--accent);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+    animation: pop 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    transition: transform 120ms ease;
+  }
+  .flower-remove[hidden] {
+    display: none;
+  }
+  .swatch {
+    width: 48px;
+    height: 48px;
+  }
+  .flower-remove:active {
+    transform: scale(0.88);
   }
   .field-row {
     flex-direction: column;
@@ -1249,5 +1323,11 @@ textarea:focus-visible,
   }
   .toast {
     border-radius: 14px;
+  }
+}
+
+@media (max-width: 479px) {
+  .hide-xs {
+    display: none;
   }
 }
