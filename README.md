@@ -17,10 +17,10 @@ The recipient sees a small envelope first and opens it with a tap, so the bloom 
 Every bouquet link also works in a terminal, no install needed:
 
 ```bash
-curl -N https://<your-domain>/t/<code>
+curl -sN "https://<your-domain>/t/<code>?cols=$(tput cols)&rows=$(tput lines)"
 ```
 
-`<code>` is everything after `#` in the bouquet link. The share dialog shows the exact command. The animation runs for about 18 seconds, then prints the message and exits. Optional query parameters: `cols` (30–200) and `rows` (16–80), for example `/t/<code>?cols=120&rows=50`.
+`<code>` is everything after `#` in the bouquet link. The share dialog shows the exact command. The animation runs for about 18 seconds, then prints the message and exits. `cols` (30–160) and `rows` (16–60) size it to your terminal. Without them it uses 60×24. If you stop it early with Ctrl-C and the cursor stays hidden, run `tput cnorm`.
 
 Opening a `/t/...` link in a browser redirects to the normal gift page.
 

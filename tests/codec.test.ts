@@ -33,6 +33,14 @@ describe("codec", () => {
     }
   });
 
+  test("strips terminal control and bidi characters", () => {
+    const c = { ...DEFAULT_CONFIG, to: "A\u202eB", from: "C\u009b2JD", message: "x\u001b[2Jy\u2066z\u0085" };
+    const d = decodeConfig(encodeConfig(c))!;
+    expect(d.to).toBe("A B");
+    expect(d.from).toBe("C 2JD");
+    expect(d.message).toBe("x [2Jy z ");
+  });
+
   test("clamps", () => {
     const raw = ["r:9,d:1,t:1,s:1,l:1,b:1,r:1", "pink", "love", "A", "B", "x".repeat(200)];
     const c = decodeConfig("v1." + Buffer.from(JSON.stringify(raw)).toString("base64url"));

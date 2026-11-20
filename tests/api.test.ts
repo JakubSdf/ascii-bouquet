@@ -35,6 +35,17 @@ describe("terminal endpoint", () => {
     expect(res.headers.location).toBe(`/#${code}`);
   });
 
+  test("default size fits a 60x24 terminal", async () => {
+    const res = fakeRes();
+    await handler(req(encodeConfig(DEFAULT_CONFIG), "curl/8.0", { seconds: "0.2" }), res as never);
+    const frames = res.body.split("\x1b[H").slice(1);
+    for (const f of frames) {
+      const lines = f.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "").replace(/\n$/, "").split("\n");
+      expect(lines.length).toBeLessThanOrEqual(24);
+      for (const l of lines) expect([...l].length).toBeLessThanOrEqual(60);
+    }
+  });
+
   test("curl gets a finished stream", async () => {
     const res = fakeRes();
     await handler(req(encodeConfig(DEFAULT_CONFIG), "curl/8.0", { cols: "50", rows: "24", seconds: "0.2" }), res as never);

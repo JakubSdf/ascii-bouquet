@@ -3,9 +3,10 @@ import type { BouquetConfig } from "../core/types";
 import { h } from "./dom";
 
 export function openShareDialog(c: BouquetConfig, origin: string): () => void {
+  for (const old of document.querySelectorAll(".share-overlay")) old.dispatchEvent(new CustomEvent("share-close"));
   const code = encodeConfig(c);
   const link = `${origin}/#${code}`;
-  const command = `curl -N ${origin.replace(/^https?:\/\//, "")}/t/${code}`;
+  const command = `curl -sN "${origin}/t/${code}?cols=$(tput cols)&rows=$(tput lines)"`;
   const name = c.to || "them";
   const opener = document.activeElement as HTMLElement | null;
 
@@ -50,6 +51,7 @@ export function openShareDialog(c: BouquetConfig, origin: string): () => void {
     h("button", { class: "share-back muted small", type: "button", onclick: close }, "← back to edit"),
   );
   const overlay = h("div", { class: "share-overlay" }, dialog);
+  overlay.addEventListener("share-close", close);
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) close();
   });

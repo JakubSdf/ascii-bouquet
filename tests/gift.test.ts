@@ -65,6 +65,14 @@ describe("mountGift", () => {
     expect(root.textContent).toContain("— Tom");
   });
 
+  test("an empty message still reveals the legend", () => {
+    reducedMotion(false);
+    const root = mount({ ...cfg, message: "" });
+    openButton(root).click();
+    expect(root.querySelector(".gift-stage")!.classList.contains("is-done")).toBe(true);
+    expect(root.querySelector(".caret")).toBeNull();
+  });
+
   test("legend lists exactly the picked flowers", () => {
     reducedMotion(true);
     const root = mount({ ...cfg, flowers: [{ id: "tulip", count: 1 }, { id: "lavender", count: 2 }] });

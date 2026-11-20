@@ -5,7 +5,7 @@ const PREFIX = "v1.";
 const BY_CODE = new Map(Object.entries(FLOWERS).map(([id, f]) => [f.code, id as FlowerId]));
 
 const clip = (s: unknown, max: number): string =>
-  typeof s === "string" ? [...s.replace(/[\u0000-\u001f\u007f]/g, " ")].slice(0, max).join("") : "";
+  typeof s === "string" ? [...s.replace(/[\u0000-\u001f\u007f-\u009f؜‎‏‪-‮⁦-⁩]/g, " ")].slice(0, max).join("") : "";
 
 function toBase64Url(bytes: Uint8Array): string {
   let bin = "";

@@ -73,11 +73,12 @@ export function mountGift(root: HTMLElement, c: BouquetConfig | null): () => voi
   function open() {
     envelope.remove();
     const canvasHost = h("div", { class: "gift-canvas" });
-    const msgEl = h("p", { class: "serif gift-message", "aria-live": "polite" }, reduced ? c!.message : "");
+    const instant = reduced || message.length === 0;
+    const msgEl = h("p", { class: "serif gift-message", "aria-live": "polite" }, instant ? c!.message : "");
     const caret = h("span", { class: "caret", "aria-hidden": "true" });
     const card = h("section", { class: "gift-card" },
       c!.to ? h("p", { class: "muted gift-to" }, `For ${c!.to}`) : null,
-      h("div", { class: "gift-message-wrap" }, msgEl, reduced ? null : caret),
+      h("div", { class: "gift-message-wrap" }, msgEl, instant ? null : caret),
       c!.from ? h("p", { class: "accent gift-from" }, `— ${c!.from}`) : null,
       legend(c!),
       h("footer", { class: "gift-footer" },
@@ -85,7 +86,7 @@ export function mountGift(root: HTMLElement, c: BouquetConfig | null): () => voi
         h("a", { class: "accent small strong", href: "/" }, "send one too ✿"),
       ),
     );
-    const stage = h("section", { class: "gift-stage" + (reduced ? " is-done" : "") }, canvasHost, card);
+    const stage = h("section", { class: "gift-stage" + (instant ? " is-done" : "") }, canvasHost, card);
     view.append(stage);
     canvas = new GridCanvas(canvasHost);
     stop = animate(c!, canvas, canvasHost, stage, msgEl, caret, message, reduced);
@@ -109,7 +110,7 @@ function animate(c: BouquetConfig, gc: GridCanvas, host: HTMLElement, stage: HTM
   let lastX = 0;
   let downX = 0;
   let downY = 0;
-  let typed = reduced ? message.length : 0;
+  let typed = reduced || message.length === 0 ? message.length : 0;
   let last = start;
   const autoSpin = reduced ? 0.15 : 0.6;
 

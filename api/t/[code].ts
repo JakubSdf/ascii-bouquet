@@ -33,8 +33,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     closed = true;
   });
   const opts = {
-    cols: Math.round(num(one(req.query.cols), 80, 30, 200)),
-    rows: Math.round(num(one(req.query.rows), 40, 16, 80)),
+    cols: Math.round(num(one(req.query.cols), 60, 30, 160)),
+    rows: Math.round(num(one(req.query.rows), 24, 16, 60)),
     fps: FPS,
     seconds: num(one(req.query.seconds), 18, 0.2, 18),
   };

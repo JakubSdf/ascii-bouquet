@@ -1,21 +1,21 @@
 import "./styles.css";
-import { decodeConfig } from "./core/codec";
 import { mountBuilder } from "./web/builder";
 import { fontsReady } from "./web/canvas";
 import { mountGift } from "./web/gift";
+import { routeFor } from "./web/route";
 
 const app = document.getElementById("app")!;
 let unmount: (() => void) | null = null;
 
 function route() {
   unmount?.();
+  for (const overlay of document.querySelectorAll(".share-overlay")) overlay.dispatchEvent(new CustomEvent("share-close"));
   app.replaceChildren();
   window.scrollTo(0, 0);
-  const hash = decodeURIComponent(location.hash.slice(1));
-  if (hash) unmount = mountGift(app, decodeConfig(hash));
-  else unmount = mountBuilder(app);
+  const r = routeFor(location.hash);
+  unmount = r.kind === "builder" ? mountBuilder(app) : mountGift(app, r.config);
 }
 
+window.addEventListener("hashchange", route);
 await fontsReady();
 route();
-window.addEventListener("hashchange", route);
