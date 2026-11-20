@@ -2,7 +2,7 @@
 
 A spinning 3D bouquet made of text characters. Pick flowers, write a note, and send it as a link.
 
-**Try it: [ascii-bouquet-beta.vercel.app](https://ascii-bouquet-beta.vercel.app)**
+**Try it: [asciibouquet.vercel.app](https://asciibouquet.vercel.app)**
 
 ![ascii-bouquet](public/og.png)
 
@@ -26,7 +26,7 @@ npm test
 ## Open a bouquet in your terminal
 
 ```bash
-curl -sN "https://ascii-bouquet-beta.vercel.app/t/<code>?cols=$(tput cols)&rows=$(tput lines)"
+curl -sN "https://asciibouquet.vercel.app/t/<code>?cols=$(tput cols)&rows=$(tput lines)"
 ```
 
 The share dialog shows the exact command for each bouquet.
