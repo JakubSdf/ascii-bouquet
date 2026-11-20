@@ -52,6 +52,8 @@ The terminal endpoint is a Vercel Function, so `npm run dev` serves only the web
 
 No environment variables, database or accounts are needed. Vercel detects Vite, builds the site and deploys `api/t/[code].ts` as the terminal endpoint. `vercel.json` maps `/t/:code` to it.
 
+Link previews in chats (iMessage, WhatsApp, Slack, Discord) need an absolute image URL. On Vercel the build fills it in from your production domain automatically. When you host elsewhere, build with `SITE_URL=https://your.domain npm run build`. The preview is the same for every bouquet, because names and messages live after `#` and never reach a server or a chat app.
+
 ## Customize
 
 Flowers, wraps and occasions live in [`src/core/catalog.ts`](src/core/catalog.ts).
