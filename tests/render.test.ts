@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { DEFAULT_CONFIG, FLOWERS } from "../src/core/catalog";
 import { bloomEase, renderFrame, type FrameOpts } from "../src/core/render";
-import { buildScene } from "../src/core/scene";
+import { buildScene, GREENS } from "../src/core/scene";
 
 const scene = buildScene(DEFAULT_CONFIG);
 const opts = (p: Partial<FrameOpts> = {}): FrameOpts => ({ cols: 80, rows: 40, t: 1, angle: 0.5, tilt: 0.3, bloom: 1, cellAspect: 2, ...p });
@@ -21,9 +21,18 @@ describe("renderFrame", () => {
     expect(count(1)).toBeGreaterThanOrEqual(50);
   });
 
-  test("bloom 0 still shows the wrap", () => {
-    const g = renderFrame(scene, opts({ bloom: 0 }));
-    expect(g.chars.filter((c) => c !== " ").length).toBeGreaterThan(100);
+  test("bloom 0 is empty and early bloom is only stem", () => {
+    expect(renderFrame(scene, opts({ bloom: 0, t: 0 })).chars.filter((c) => c !== " ").length).toBe(0);
+    const early = renderFrame(scene, opts({ bloom: 0.1 }));
+    const used = early.colors.filter(Boolean);
+    expect(used.length).toBeGreaterThan(3);
+    for (const c of used) expect(GREENS).toContain(c);
+  });
+
+  test("lily renders in its palette", () => {
+    const s = buildScene({ ...DEFAULT_CONFIG, flowers: [{ id: "lily", count: 3 }] });
+    const lily = new Set(FLOWERS.lily.palette);
+    expect(renderFrame(s, opts()).colors.filter((c) => lily.has(c)).length).toBeGreaterThanOrEqual(40);
   });
 
   test("fits a small terminal with a margin", () => {

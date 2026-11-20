@@ -77,7 +77,7 @@ export function renderFrame(scene: Scene, o: FrameOpts): Grid {
   };
 
   for (const p of scene.points) {
-    if (p.stage > o.bloom) continue;
+    if (o.bloom <= 0 || p.stage > o.bloom) continue;
     const { fx, fy, zt } = project(p.x, p.y, p.z);
     const nxr = p.nx * ca - p.nz * sa;
     const nzr = p.nx * sa + p.nz * ca;
@@ -100,7 +100,7 @@ export function renderFrame(scene: Scene, o: FrameOpts): Grid {
     if (grow < 0.4) {
       const c = pick(spec.palette, 0.5);
       plot(Math.floor(fx) - 1, Math.floor(fy), zt + 0.03, "(", c);
-      plot(Math.floor(fx), Math.floor(fy), zt + 0.03, spec.kind === "tulip" ? "v" : "o", pick(spec.palette, 0.7));
+      plot(Math.floor(fx), Math.floor(fy), zt + 0.03, spec.kind === "disc" ? "o" : "v", pick(spec.palette, 0.7));
       plot(Math.floor(fx) + 1, Math.floor(fy), zt + 0.03, ")", c);
       continue;
     }
@@ -125,6 +125,21 @@ export function renderFrame(scene: Scene, o: FrameOpts): Grid {
           const edge = s > reach - 0.14 ? -0.22 : 0;
           const b = 0.62 - 0.22 * dx - 0.28 * dy + 0.12 * s + edge + dim;
           plot(col, row, zt + 0.04 * (1 - s), PETAL[Math.floor(clamp01(b) * PETAL.length)], pick(spec.palette, b));
+        } else if (spec.kind === "lily") {
+          const s = Math.hypot(dx, dy);
+          if (s > 1) continue;
+          const phi = Math.atan2(dy, dx) + spin;
+          if (s < 0.22) {
+            const ray = Math.abs(Math.cos(3 * phi + 0.5));
+            if (ray > 0.7) plot(col, row, zt + 0.07, s < 0.1 ? "*" : "'", pick(spec.center, 0.8 - s));
+            continue;
+          }
+          const reach = 0.42 + 0.58 * Math.abs(Math.cos(3 * phi)) ** 0.8;
+          if (s > reach) continue;
+          const vein = Math.abs(Math.sin(3 * phi)) < 0.12 ? -0.2 : 0;
+          const freckle = s < 0.55 && Math.sin(phi * 17 + s * 31) > 0.96 ? ":" : null;
+          const b = 0.68 - 0.2 * dx - 0.26 * dy + 0.1 * s + vein + (s > reach - 0.12 ? -0.18 : 0) + dim;
+          plot(col, row, zt + 0.05 * (1 - s), freckle ?? PETAL[Math.floor(clamp01(b) * PETAL.length)], freckle ? pick(spec.palette, 0.1) : pick(spec.palette, b));
         } else {
           const v = (1 - dy) / 2;
           if (v < 0 || v > 1) continue;

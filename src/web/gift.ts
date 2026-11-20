@@ -26,21 +26,6 @@ const TYPE_MS = 40;
 interface Heart { x: number; y: number; speed: number; phase: number; color: string }
 interface Petal { x: number; y: number; vx: number; vy: number; ch: string; color: string; born: number }
 
-export function legend(c: BouquetConfig): HTMLElement {
-  const box = h("div", { class: "gift-legend" }, h("p", { class: "gift-legend-title" }, "what your flowers say"));
-  for (const f of c.flowers) {
-    const spec = FLOWERS[f.id];
-    box.append(
-      h("p", { class: "gift-legend-row" },
-        h("span", { class: "gift-legend-glyph", style: `color:${spec.palette[spec.palette.length - 2]}` }, spec.glyph),
-        h("span", {}, spec.name.toLowerCase()),
-        h("span", { class: "muted" }, `— ${spec.meaning}`),
-      ),
-    );
-  }
-  return box;
-}
-
 function lost(root: HTMLElement): () => void {
   const view = h("main", { class: "gift gift-lost" },
     colorSpans(BUD.slice(4), BUD_COLORS),
@@ -80,7 +65,6 @@ export function mountGift(root: HTMLElement, c: BouquetConfig | null): () => voi
       c!.to ? h("p", { class: "muted gift-to" }, `For ${c!.to}`) : null,
       h("div", { class: "gift-message-wrap" }, msgEl, instant ? null : caret),
       c!.from ? h("p", { class: "accent gift-from" }, `— ${c!.from}`) : null,
-      legend(c!),
       h("footer", { class: "gift-footer" },
         h("span", { class: "muted small" }, "↻ drag · tap for petals"),
         h("a", { class: "accent small strong", href: "/" }, "send one too ✿"),

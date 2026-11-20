@@ -39,12 +39,14 @@ export function decodeConfig(s: string): BouquetConfig | null {
   const [flowerStr, wrap, occasion, to, from, message] = tuple;
   if (typeof flowerStr !== "string" || typeof wrap !== "string" || !Object.hasOwn(WRAPS, wrap) || typeof occasion !== "string" || !Object.hasOwn(OCCASIONS, occasion)) return null;
   const flowers: FlowerPick[] = [];
+  let left = LIMITS.maxTotal;
   for (const part of flowerStr.split(",")) {
-    const m = /^([a-z]):(\d+)$/.exec(part);
+    const m = /^([a-z]):(\d{1,3})$/.exec(part);
     const id = m && BY_CODE.get(m[1]);
     if (!m || !id) return null;
-    if (flowers.some((f) => f.id === id) || flowers.length >= LIMITS.maxFlowers) continue;
-    const count = Math.min(LIMITS.maxCount, Math.max(1, Number(m[2]))) as FlowerPick["count"];
+    if (left <= 0 || flowers.some((f) => f.id === id)) continue;
+    const count = Math.min(left, Math.max(1, Number(m[2])));
+    left -= count;
     flowers.push({ id, count });
   }
   if (!flowers.length) return null;

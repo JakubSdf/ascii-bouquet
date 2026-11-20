@@ -1,6 +1,7 @@
 import { encodeConfig } from "../core/codec";
 import type { BouquetConfig } from "../core/types";
 import { h } from "./dom";
+import { qrPng, qrSvg } from "./qr";
 
 export function openShareDialog(c: BouquetConfig, origin: string): () => void {
   for (const old of document.querySelectorAll(".share-overlay")) old.dispatchEvent(new CustomEvent("share-close"));
@@ -28,6 +29,27 @@ export function openShareDialog(c: BouquetConfig, origin: string): () => void {
     ? h("button", { class: "btn", type: "button", onclick: () => navigator.share({ title: "A bouquet for you ✿", url: link }).catch(() => undefined) }, "↗ Share…")
     : null;
 
+  const qrBox = h("div", { class: "share-qr", hidden: true });
+  const qrBtn = h("button", { class: "btn", type: "button", "aria-expanded": "false" }, "◉ QR code");
+  qrBtn.addEventListener("click", () => {
+    const open = qrBox.hidden;
+    if (open && !qrBox.firstChild) {
+      const art = h("div", { class: "share-qr-art" });
+      art.innerHTML = qrSvg(link);
+      const save = h("button", { class: "link-btn accent", type: "button" }, "↓ Save image");
+      save.addEventListener("click", async () => {
+        const blob = await qrPng(link).catch(() => null);
+        if (!blob) return;
+        const a = h("a", { href: URL.createObjectURL(blob), download: `bouquet-for-${(c.to || "you").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png` });
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      });
+      qrBox.append(art, h("div", { class: "share-qr-side" }, h("p", { class: "strong" }, "Scan to open"), h("p", { class: "muted small" }, "Print it on a card or tuck it into real flowers."), save));
+    }
+    qrBox.hidden = !open;
+    qrBtn.setAttribute("aria-expanded", String(open));
+  });
+
   const linkEl = h("code", { class: "share-link", tabindex: "0" }, link);
   const cmdEl = h("code", { class: "share-terminal" }, h("span", { class: "accent" }, "$ "), command);
   const close = () => {
@@ -45,8 +67,10 @@ export function openShareDialog(c: BouquetConfig, origin: string): () => void {
     h("div", { class: "share-row" }, linkEl, copyBtn),
     h("div", { class: "share-actions" },
       shareBtn,
+      qrBtn,
       h("a", { class: "btn", href: link, target: "_blank", rel: "noopener" }, `▶ Preview as ${c.to || "them"}`),
     ),
+    qrBox,
     h("div", { class: "share-term" }, h("p", { class: "muted small" }, "For a nerd? They can open it in a terminal:"), cmdEl),
     h("button", { class: "share-back muted small", type: "button", onclick: close }, "← back to edit"),
   );

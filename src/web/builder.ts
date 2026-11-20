@@ -2,7 +2,7 @@ import { DEFAULT_CONFIG, FLOWERS, LIMITS, OCCASIONS, WRAPS } from "../core/catal
 import { decodeConfig, encodeConfig } from "../core/codec";
 import { bloomEase, renderFrame } from "../core/render";
 import { buildScene, type Scene } from "../core/scene";
-import type { BouquetConfig, FlowerId, FlowerPick, OccasionId, WrapId } from "../core/types";
+import type { BouquetConfig, FlowerId, OccasionId, WrapId } from "../core/types";
 import { GridCanvas } from "./canvas";
 import { h, onFrame, prefersReducedMotion } from "./dom";
 import { REPO_URL } from "./links";
@@ -50,18 +50,24 @@ export function mountBuilder(root: HTMLElement): () => void {
 
   const persist = () => saveDraft({ config: state, touched: draft.touched });
 
-  const flowerButtons = new Map<FlowerId, HTMLButtonElement>();
+  const flowerCards = new Map<FlowerId, { card: HTMLElement; toggle: HTMLButtonElement; minus: HTMLButtonElement; plus: HTMLButtonElement; qty: HTMLElement }>();
   const flowerGrid = h("div", { class: "flower-grid" });
+  const flowerTotal = h("span", { class: "flower-total muted small" });
   for (const [id, spec] of Object.entries(FLOWERS) as [FlowerId, (typeof FLOWERS)[FlowerId]][]) {
-    const btn = h("button", { class: "flower", type: "button", "data-id": id, "aria-pressed": "false" },
+    const toggle = h("button", { class: "flower-toggle", type: "button", "aria-pressed": "false" },
       h("span", { class: "flower-glyph", style: `color:${spec.palette[spec.palette.length - 2]}` }, spec.glyph),
       h("span", { class: "flower-name" }, spec.name),
       h("span", { class: "flower-meaning" }, spec.meaning),
-      h("span", { class: "flower-count" }),
     );
-    btn.addEventListener("click", () => toggleFlower(id, btn));
-    flowerButtons.set(id, btn);
-    flowerGrid.append(btn);
+    const minus = h("button", { class: "flower-minus", type: "button", "aria-label": `One ${spec.name.toLowerCase()} less` }, "−");
+    const plus = h("button", { class: "flower-plus", type: "button", "aria-label": `One ${spec.name.toLowerCase()} more` }, "+");
+    const qty = h("span", { class: "flower-qty", "aria-live": "polite" });
+    const card = h("div", { class: "flower", "data-id": id }, toggle, h("div", { class: "flower-stepper" }, minus, qty, plus));
+    toggle.addEventListener("click", () => toggleFlower(id, card));
+    minus.addEventListener("click", () => adjustCount(id, -1));
+    plus.addEventListener("click", () => adjustCount(id, 1, card));
+    flowerCards.set(id, { card, toggle, minus, plus, qty });
+    flowerGrid.append(card);
   }
 
   const swatches = new Map<WrapId, HTMLButtonElement>();
@@ -120,7 +126,7 @@ export function mountBuilder(root: HTMLElement): () => void {
     );
 
   const steps = [
-    section(0, `pick up to ${LIMITS.maxFlowers}`, flowerGrid),
+    section(0, "up to 8 in total", flowerTotal, flowerGrid),
     section(1, null, swatchRow),
     section(2, null, chipRow),
     section(3, null,
@@ -174,22 +180,36 @@ export function mountBuilder(root: HTMLElement): () => void {
   );
   root.append(view);
 
-  function toggleFlower(id: FlowerId, btn: HTMLButtonElement) {
+  const totalCount = () => state.flowers.reduce((n, f) => n + f.count, 0);
+
+  function shake(el: HTMLElement) {
+    el.classList.remove("shake");
+    void el.offsetWidth;
+    el.classList.add("shake");
+  }
+
+  function toggleFlower(id: FlowerId, card: HTMLElement) {
     const i = state.flowers.findIndex((f) => f.id === id);
-    if (i < 0) {
-      if (state.flowers.length >= LIMITS.maxFlowers) {
-        btn.classList.remove("shake");
-        void btn.offsetWidth;
-        btn.classList.add("shake");
-        return;
-      }
-      state.flowers.push({ id, count: 1 });
+    if (i >= 0) {
+      if (state.flowers.length === 1) return shake(card);
+      state.flowers.splice(i, 1);
     } else {
-      const f = state.flowers[i];
-      if (f.count < LIMITS.maxCount) f.count = (f.count + 1) as FlowerPick["count"];
-      else if (state.flowers.length > 1) state.flowers.splice(i, 1);
-      else f.count = 1;
+      if (totalCount() >= LIMITS.maxTotal) return shake(card);
+      state.flowers.push({ id, count: 1 });
     }
+    changed(true);
+  }
+
+  function adjustCount(id: FlowerId, delta: number, card?: HTMLElement) {
+    const i = state.flowers.findIndex((f) => f.id === id);
+    if (i < 0) return;
+    const f = state.flowers[i];
+    if (delta > 0) {
+      if (totalCount() >= LIMITS.maxTotal) return card && shake(card);
+      f.count += 1;
+    } else if (f.count > 1) f.count -= 1;
+    else if (state.flowers.length > 1) state.flowers.splice(i, 1);
+    else return;
     changed(true);
   }
 
@@ -208,10 +228,15 @@ export function mountBuilder(root: HTMLElement): () => void {
   }
 
   function sync() {
-    for (const [id, btn] of flowerButtons) {
+    const total = totalCount();
+    flowerTotal.textContent = `${total} / ${LIMITS.maxTotal} flowers`;
+    for (const [id, c] of flowerCards) {
       const f = state.flowers.find((x) => x.id === id);
-      btn.setAttribute("aria-pressed", String(!!f));
-      btn.querySelector(".flower-count")!.textContent = f ? `×${f.count}` : "";
+      c.card.classList.toggle("is-picked", !!f);
+      c.toggle.setAttribute("aria-pressed", String(!!f));
+      c.qty.textContent = f ? String(f.count) : "";
+      c.plus.disabled = !f || total >= LIMITS.maxTotal;
+      c.minus.disabled = !f || (f.count === 1 && state.flowers.length === 1);
     }
     for (const [id, btn] of swatches) btn.setAttribute("aria-pressed", String(id === state.wrap));
     wrapLabel.textContent = WRAPS[state.wrap].label;

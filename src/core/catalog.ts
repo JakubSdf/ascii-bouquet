@@ -9,6 +9,7 @@ export const FLOWERS: Record<FlowerId, FlowerSpec> = {
   tulip: { name: "Tulip", meaning: "perfect love", glyph: "♠", code: "t", kind: "tulip", petals: 3, palette: ["#87005f", "#af005f", "#d7005f", "#ff5f87", "#ff87af", "#ffafd7"], center: GOLD_CENTER },
   sunflower: { name: "Sunflower", meaning: "adoration", glyph: "o", code: "s", kind: "disc", petals: 12, palette: ["#af8700", "#d7af00", "#ffd700", "#ffff00", "#ffff5f", "#ffffaf"], center: DARK_CENTER },
   lavender: { name: "Lavender", meaning: "devotion", glyph: "¦", code: "l", kind: "spike", petals: 0, palette: ["#5f0087", "#5f00af", "#875faf", "#af87d7", "#d7afff", "#eeddff"], center: GOLD_CENTER },
+  lily: { name: "Lily", meaning: "renewal", glyph: "%", code: "i", kind: "lily", petals: 6, palette: ["#875f87", "#af87af", "#d7afd7", "#ffd7ff", "#ffeeff", "#ffffff"], center: ["#875f00", "#af5f00", "#d75f00", "#ff8700", "#ffaf5f"] },
   babysbreath: { name: "Baby's breath", meaning: "forever", glyph: "·", code: "b", kind: "cloud", petals: 0, palette: ["#bcbcbc", "#d0d0d0", "#e4e4e4", "#eeeeee", "#ffffff", "#ffffff"], center: GOLD_CENTER },
 };
 
@@ -29,7 +30,7 @@ export const OCCASIONS: Record<OccasionId, OccasionSpec> = {
   justbecause: { label: "Just because", icon: "~", defaultMessage: "No reason. Just thinking of you." },
 };
 
-export const LIMITS = { name: 24, message: 120, maxFlowers: 5, maxCount: 3 } as const;
+export const LIMITS = { name: 24, message: 120, maxTotal: 8 } as const;
 
 export const DEFAULT_CONFIG: BouquetConfig = {
   flowers: [

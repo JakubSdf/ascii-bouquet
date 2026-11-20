@@ -65,7 +65,7 @@ describe("mountGift", () => {
     expect(root.textContent).toContain("— Tom");
   });
 
-  test("an empty message still reveals the legend", () => {
+  test("an empty message still reveals the footer", () => {
     reducedMotion(false);
     const root = mount({ ...cfg, message: "" });
     openButton(root).click();
@@ -73,15 +73,13 @@ describe("mountGift", () => {
     expect(root.querySelector(".caret")).toBeNull();
   });
 
-  test("legend lists exactly the picked flowers", () => {
+  test("the gift shows no flower meanings", () => {
     reducedMotion(true);
     const root = mount({ ...cfg, flowers: [{ id: "tulip", count: 1 }, { id: "lavender", count: 2 }] });
     openButton(root).click();
-    const legend = root.querySelector(".gift-legend")!.textContent!;
-    expect(legend).toContain(FLOWERS.tulip.meaning);
-    expect(legend).toContain(FLOWERS.lavender.meaning);
-    expect(legend).not.toContain(FLOWERS.sunflower.meaning);
-    expect(legend).not.toContain(FLOWERS.rose.name.toLowerCase());
+    expect(root.textContent).not.toContain(FLOWERS.tulip.meaning);
+    expect(root.textContent).not.toContain(FLOWERS.lavender.meaning);
+    expect(root.textContent).not.toContain("what your flowers say");
   });
 
   test("send one too links home", () => {

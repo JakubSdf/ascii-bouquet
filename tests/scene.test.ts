@@ -37,6 +37,25 @@ describe("buildScene", () => {
     expect(s.points.filter((p) => p.part === "spike").length).toBeGreaterThan(20);
   });
 
+  test("growth starts at the stem and the wrap comes after", () => {
+    const s = buildScene(DEFAULT_CONFIG);
+    const stems = s.points.filter((p) => p.part === "stem");
+    expect(Math.min(...stems.map((p) => p.stage))).toBe(0);
+    const lowest = stems.reduce((a, b) => (b.y < a.y ? b : a));
+    const highest = stems.reduce((a, b) => (b.y > a.y ? b : a));
+    expect(lowest.stage).toBeLessThan(highest.stage);
+    const paper = s.points.filter((p) => p.part === "paper").map((p) => p.stage);
+    const ribbon = s.points.filter((p) => p.part === "ribbon").map((p) => p.stage);
+    expect(Math.min(...paper)).toBeGreaterThanOrEqual(0.4);
+    expect(Math.min(...ribbon)).toBeGreaterThanOrEqual(Math.max(...paper) - 0.05);
+  });
+
+  test("lily gets its own heads", () => {
+    const s = buildScene(cfg({ flowers: [{ id: "lily", count: 8 }] }));
+    expect(s.heads.length).toBe(8);
+    expect(s.heads.every((h) => h.flower === "lily")).toBe(true);
+  });
+
   test("stages are ordered", () => {
     const s = buildScene(DEFAULT_CONFIG);
     for (const p of s.points) expect(p.stage).toBeGreaterThanOrEqual(0), expect(p.stage).toBeLessThanOrEqual(1);

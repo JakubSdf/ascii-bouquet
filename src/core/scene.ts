@@ -106,10 +106,10 @@ export function buildScene(c: BouquetConfig): Scene {
         z: base[2] + (neck[2] - base[2]) * t,
         nx: axis[0], ny: 0, nz: axis[2],
         palette: GREENS, tone: -0.15, twoSided: true, part: "stem",
-        stage: 0.05 + 0.3 * (1 - t),
+        stage: 0.15 + 0.25 * (1 - t),
       });
     }
-    const headStage = 0.4 + 0.35 * (n > 1 ? i / (n - 1) : 0);
+    const headStage = 0.5 + 0.35 * (n > 1 ? i / (n - 1) : 0);
     const spec = FLOWERS[id];
     if (spec.kind === "spike") {
       for (let k = 0; k < 16; k++) {
@@ -131,7 +131,7 @@ export function buildScene(c: BouquetConfig): Scene {
     } else {
       heads.push({
         x: pos[0], y: pos[1], z: pos[2], flower: id,
-        radius: spec.kind === "tulip" ? 0.13 : uni(0.14, 0.16),
+        radius: spec.kind === "tulip" ? 0.13 : spec.kind === "lily" ? uni(0.18, 0.2) : uni(0.14, 0.16),
         seed: uni(0, 6.28), stage: headStage,
       });
     }
@@ -156,7 +156,7 @@ export function buildScene(c: BouquetConfig): Scene {
           z: base[2] + d[2] * 0.3 * t + side[2] * width + nn[2] * curl,
           nx: nn[0], ny: nn[1], nz: nn[2],
           palette: GREENS, tone: wi === 0 ? -0.25 : 0, twoSided: true, part: "leaf",
-          stage: 0.3 + 0.2 * t,
+          stage: 0.3 + 0.15 * t,
         });
       }
     }
@@ -176,7 +176,7 @@ export function buildScene(c: BouquetConfig): Scene {
       const nn = norm([co, -k, si]);
       points.push({
         x: r * co, y, z: r * si, nx: nn[0], ny: nn[1], nz: nn[2],
-        palette: wrap.paper, tone: 0.3 * (Math.abs(Math.sin(5 * ph)) - 0.6), twoSided: false, part: "paper", stage: 0,
+        palette: wrap.paper, tone: 0.3 * (Math.abs(Math.sin(5 * ph)) - 0.6), twoSided: false, part: "paper", stage: 0.4 + 0.15 * t,
       });
     }
   }
@@ -189,7 +189,7 @@ export function buildScene(c: BouquetConfig): Scene {
       points.push({
         x: sx * (1 + 1.2 * t), y: -0.2 - 0.3 * t, z: sz * (1 + 1.2 * t),
         nx: Math.cos(a), ny: 0, nz: Math.sin(a),
-        palette: GREENS, tone: -0.1, twoSided: true, part: "stem", stage: 0,
+        palette: GREENS, tone: -0.1, twoSided: true, part: "stem", stage: 0.15 * (1 - t),
       });
     }
   }
@@ -202,7 +202,7 @@ export function buildScene(c: BouquetConfig): Scene {
       points.push({
         x: br * Math.cos(ph), y: by + dy, z: br * Math.sin(ph),
         nx: Math.cos(ph), ny: 0, nz: Math.sin(ph),
-        palette: wrap.ribbon, tone: 0, twoSided: false, part: "ribbon", stage: 0,
+        palette: wrap.ribbon, tone: 0, twoSided: false, part: "ribbon", stage: 0.55,
       });
     }
   }
@@ -216,7 +216,7 @@ export function buildScene(c: BouquetConfig): Scene {
         points.push({
           x: knot[0] + lx * fill, y: knot[1] + ly * fill, z: knot[2] + 0.01,
           nx: side * 0.3, ny: 0.2, nz: 0.93,
-          palette: wrap.ribbon, tone: 0.1, twoSided: true, part: "ribbon", stage: 0,
+          palette: wrap.ribbon, tone: 0.1, twoSided: true, part: "ribbon", stage: 0.58,
         });
       }
     }
@@ -225,12 +225,12 @@ export function buildScene(c: BouquetConfig): Scene {
       points.push({
         x: knot[0] + side * 0.06 * t, y: knot[1] - 0.15 * t, z: knot[2] + 0.015,
         nx: side * 0.2, ny: 0, nz: 0.98,
-        palette: wrap.ribbon, tone: -0.05 + 0.05 * Math.sin(t * 9), twoSided: true, part: "ribbon", stage: 0,
+        palette: wrap.ribbon, tone: -0.05 + 0.05 * Math.sin(t * 9), twoSided: true, part: "ribbon", stage: 0.58,
       });
     }
   }
   for (const dx of [-0.01, 0, 0.01]) {
-    points.push({ x: dx, y: by, z: knot[2] + 0.02, nx: 0, ny: 0, nz: 1, palette: wrap.ribbon, tone: 0.2, twoSided: true, glyph: "@", part: "ribbon", stage: 0 });
+    points.push({ x: dx, y: by, z: knot[2] + 0.02, nx: 0, ny: 0, nz: 1, palette: wrap.ribbon, tone: 0.2, twoSided: true, glyph: "@", part: "ribbon", stage: 0.6 });
   }
 
   const babies: Sparkle[] = [];

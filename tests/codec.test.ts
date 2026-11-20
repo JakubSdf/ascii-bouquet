@@ -42,11 +42,23 @@ describe("codec", () => {
   });
 
   test("clamps", () => {
-    const raw = ["r:9,d:1,t:1,s:1,l:1,b:1,r:1", "pink", "love", "A", "B", "x".repeat(200)];
+    const raw = ["r:3,d:2,t:2,s:2,l:1,b:1,r:1", "pink", "love", "A", "B", "x".repeat(200)];
     const c = decodeConfig("v1." + Buffer.from(JSON.stringify(raw)).toString("base64url"));
     expect(c).not.toBeNull();
     expect([...c!.message].length).toBe(LIMITS.message);
-    expect(c!.flowers.length).toBe(LIMITS.maxFlowers);
-    expect(c!.flowers[0]).toEqual({ id: "rose", count: 3 });
+    expect(c!.flowers).toEqual([{ id: "rose", count: 3 }, { id: "daisy", count: 2 }, { id: "tulip", count: 2 }, { id: "sunflower", count: 1 }]);
+    expect(c!.flowers.reduce((n, f) => n + f.count, 0)).toBe(LIMITS.maxTotal);
+  });
+
+  test("eight of one flower", () => {
+    const c = { ...DEFAULT_CONFIG, flowers: [{ id: "rose" as const, count: 8 }] };
+    expect(decodeConfig(encodeConfig(c))).toEqual(c);
+    const over = ["r:12", "pink", "love", "", "", ""];
+    expect(decodeConfig("v1." + Buffer.from(JSON.stringify(over)).toString("base64url"))!.flowers).toEqual([{ id: "rose", count: 8 }]);
+  });
+
+  test("lily round-trips", () => {
+    const c = { ...DEFAULT_CONFIG, flowers: [{ id: "lily" as const, count: 3 }] };
+    expect(decodeConfig(encodeConfig(c))).toEqual(c);
   });
 });

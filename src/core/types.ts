@@ -1,10 +1,10 @@
-export type FlowerId = "rose" | "daisy" | "tulip" | "sunflower" | "lavender" | "babysbreath";
+export type FlowerId = "rose" | "daisy" | "tulip" | "sunflower" | "lavender" | "lily" | "babysbreath";
 export type WrapId = "pink" | "red" | "lilac" | "gold" | "sage" | "white";
 export type OccasionId = "love" | "birthday" | "sorry" | "thanks" | "justbecause";
 
 export interface FlowerPick {
   id: FlowerId;
-  count: 1 | 2 | 3;
+  count: number;
 }
 
 export interface BouquetConfig {
@@ -21,7 +21,7 @@ export interface FlowerSpec {
   meaning: string;
   glyph: string;
   code: string;
-  kind: "disc" | "tulip" | "spike" | "cloud";
+  kind: "disc" | "tulip" | "lily" | "spike" | "cloud";
   petals: number;
   palette: string[];
   center: string[];

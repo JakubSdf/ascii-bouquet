@@ -18,8 +18,13 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-const flower = (id: string) => root.querySelector<HTMLButtonElement>(`.flower[data-id="${id}"]`)!;
-const badge = (id: string) => flower(id).querySelector(".flower-count")?.textContent ?? "";
+const card = (id: string) => root.querySelector<HTMLElement>(`.flower[data-id="${id}"]`)!;
+const toggle = (id: string) => card(id).querySelector<HTMLButtonElement>(".flower-toggle")!;
+const plus = (id: string) => card(id).querySelector<HTMLButtonElement>(".flower-plus")!;
+const minus = (id: string) => card(id).querySelector<HTMLButtonElement>(".flower-minus")!;
+const qty = (id: string) => card(id).querySelector(".flower-qty")!.textContent;
+const picked = (id: string) => toggle(id).getAttribute("aria-pressed") === "true";
+const total = () => root.querySelector(".flower-total")!.textContent;
 const button = (text: string) => [...document.querySelectorAll("button")].find((b) => b.textContent?.includes(text)) as HTMLButtonElement;
 const field = (name: string) => root.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${name}"]`)!;
 const type = (el: HTMLInputElement | HTMLTextAreaElement, value: string) => {
@@ -34,36 +39,62 @@ const shareCode = () => {
 
 describe("mountBuilder", () => {
   test("starts from the default bouquet", () => {
-    expect(flower("rose").getAttribute("aria-pressed")).toBe("true");
-    expect(badge("rose")).toBe("×2");
-    expect(flower("tulip").getAttribute("aria-pressed")).toBe("false");
+    expect(picked("rose")).toBe(true);
+    expect(qty("rose")).toBe("2");
+    expect(picked("tulip")).toBe(false);
+    expect(total()).toBe("4 / 8 flowers");
   });
 
-  test("tapping a flower cycles 1 → 2 → 3 → removed", () => {
-    flower("tulip").click();
-    expect(badge("tulip")).toBe("×1");
-    flower("tulip").click();
-    expect(badge("tulip")).toBe("×2");
-    flower("tulip").click();
-    expect(badge("tulip")).toBe("×3");
-    flower("tulip").click();
-    expect(flower("tulip").getAttribute("aria-pressed")).toBe("false");
+  test("tap adds one, plus and minus change the count, minus at one removes", () => {
+    toggle("tulip").click();
+    expect(qty("tulip")).toBe("1");
+    plus("tulip").click();
+    plus("tulip").click();
+    expect(qty("tulip")).toBe("3");
+    minus("tulip").click();
+    expect(qty("tulip")).toBe("2");
+    minus("tulip").click();
+    minus("tulip").click();
+    expect(picked("tulip")).toBe(false);
   });
 
-  test("a sixth flower is ignored", () => {
-    for (const id of ["tulip", "lavender"]) flower(id).click();
-    expect(root.querySelectorAll('.flower[aria-pressed="true"]').length).toBe(5);
-    flower("babysbreath").click();
-    expect(root.querySelectorAll('.flower[aria-pressed="true"]').length).toBe(5);
-    expect(flower("babysbreath").getAttribute("aria-pressed")).toBe("false");
+  test("tapping a picked flower removes it", () => {
+    toggle("daisy").click();
+    expect(picked("daisy")).toBe(false);
+    expect(total()).toBe("3 / 8 flowers");
+  });
+
+  test("never more than eight flowers in total", () => {
+    for (let i = 0; i < 10; i++) plus("rose").click();
+    expect(total()).toBe("8 / 8 flowers");
+    expect(qty("rose")).toBe("6");
+    expect(plus("rose").disabled).toBe(true);
+    toggle("lily").click();
+    expect(picked("lily")).toBe(false);
+  });
+
+  test("eight of the same flower", () => {
+    toggle("daisy").click();
+    toggle("sunflower").click();
+    for (let i = 0; i < 6; i++) plus("rose").click();
+    expect(qty("rose")).toBe("8");
+    expect(shareCode()!.flowers).toEqual([{ id: "rose", count: 8 }]);
   });
 
   test("the last flower cannot be removed", () => {
-    for (let i = 0; i < 3; i++) flower("daisy").click();
-    for (let i = 0; i < 3; i++) flower("sunflower").click();
-    expect(root.querySelectorAll('.flower[aria-pressed="true"]').length).toBe(1);
-    for (let i = 0; i < 4; i++) flower("rose").click();
-    expect(flower("rose").getAttribute("aria-pressed")).toBe("true");
+    toggle("daisy").click();
+    toggle("sunflower").click();
+    toggle("rose").click();
+    minus("rose").click();
+    minus("rose").click();
+    expect(picked("rose")).toBe(true);
+    expect(qty("rose")).toBe("1");
+    expect(minus("rose").disabled).toBe(true);
+  });
+
+  test("lily is offered", () => {
+    toggle("lily").click();
+    expect(picked("lily")).toBe(true);
   });
 
   test("message is limited to 120 characters", () => {
