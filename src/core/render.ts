@@ -1,5 +1,5 @@
-import { FLOWERS } from "./catalog";
-import type { Scene } from "./scene";
+import { FLOWERS } from "./catalog.js";
+import type { Scene } from "./scene.js";
 
 export interface Grid {
   cols: number;

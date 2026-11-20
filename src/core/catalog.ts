@@ -1,4 +1,4 @@
-import type { BouquetConfig, FlowerId, FlowerSpec, OccasionId, OccasionSpec, WrapId, WrapSpec } from "./types";
+import type { BouquetConfig, FlowerId, FlowerSpec, OccasionId, OccasionSpec, WrapId, WrapSpec } from "./types.js";
 
 const GOLD_CENTER = ["#875f00", "#af8700", "#d7af00", "#ffaf00", "#ffd700"];
 const DARK_CENTER = ["#5f0000", "#5f5f00", "#875f00", "#af5f00", "#af8700"];

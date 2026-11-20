@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { streamFrames } from "../../src/core/ansi";
-import { decodeConfig } from "../../src/core/codec";
+import { streamFrames } from "../../src/core/ansi.js";
+import { decodeConfig } from "../../src/core/codec.js";
 
 export const config = { maxDuration: 30 };
 

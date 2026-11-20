@@ -1,6 +1,6 @@
-import { bloomEase, renderFrame, type Grid } from "./render";
-import { buildScene } from "./scene";
-import type { BouquetConfig } from "./types";
+import { bloomEase, renderFrame, type Grid } from "./render.js";
+import { buildScene } from "./scene.js";
+import type { BouquetConfig } from "./types.js";
 
 const ESC = "\x1b[";
 const HIDE = `${ESC}?25l`;

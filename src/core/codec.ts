@@ -1,5 +1,5 @@
-import { FLOWERS, LIMITS, OCCASIONS, WRAPS } from "./catalog";
-import type { BouquetConfig, FlowerId, FlowerPick, OccasionId, WrapId } from "./types";
+import { FLOWERS, LIMITS, OCCASIONS, WRAPS } from "./catalog.js";
+import type { BouquetConfig, FlowerId, FlowerPick, OccasionId, WrapId } from "./types.js";
 
 const PREFIX = "v1.";
 const BY_CODE = new Map(Object.entries(FLOWERS).map(([id, f]) => [f.code, id as FlowerId]));

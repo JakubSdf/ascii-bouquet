@@ -1,5 +1,5 @@
-import { FLOWERS, WRAPS } from "./catalog";
-import type { BouquetConfig, FlowerId } from "./types";
+import { FLOWERS, WRAPS } from "./catalog.js";
+import type { BouquetConfig, FlowerId } from "./types.js";
 
 export type Part = "stem" | "leaf" | "paper" | "ribbon" | "spike";
 
