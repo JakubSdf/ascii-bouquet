@@ -131,7 +131,7 @@ export function buildScene(c: BouquetConfig): Scene {
     } else {
       heads.push({
         x: pos[0], y: pos[1], z: pos[2], flower: id,
-        radius: spec.kind === "tulip" ? 0.11 : uni(0.12, 0.14),
+        radius: spec.kind === "tulip" ? 0.13 : uni(0.14, 0.16),
         seed: uni(0, 6.28), stage: headStage,
       });
     }
