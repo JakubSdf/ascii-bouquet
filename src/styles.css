@@ -1091,8 +1091,11 @@ textarea:focus-visible,
     flex-direction: column;
   }
   .bottom-bar {
-    margin: 0 -20px;
-    padding: 12px 20px max(16px, env(safe-area-inset-bottom));
+    position: static;
+    margin: 4px 0 0;
+    padding: 4px 0 max(20px, env(safe-area-inset-bottom));
+    border-top: 0;
+    background: none;
   }
 }
 
