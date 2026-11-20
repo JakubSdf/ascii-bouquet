@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import handler from "../api/t/[code]";
+import handler, { createTerminalHandler } from "../api/t/[code]";
+import { memoryStore, saveBouquet } from "../src/server/store";
 import { DEFAULT_CONFIG } from "../src/core/catalog";
 import { encodeConfig } from "../src/core/codec";
 
@@ -44,6 +45,15 @@ describe("terminal endpoint", () => {
       expect(lines.length).toBeLessThanOrEqual(24);
       for (const l of lines) expect([...l].length).toBeLessThanOrEqual(60);
     }
+  });
+
+  test("short ids work in the terminal too", async () => {
+    const store = memoryStore();
+    const id = await saveBouquet(store, encodeConfig(DEFAULT_CONFIG), "ip");
+    const res = fakeRes();
+    await createTerminalHandler(() => store)(req(id, "curl/8.0", { seconds: "0.2" }), res as never);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toContain(DEFAULT_CONFIG.message);
   });
 
   test("curl gets a finished stream", async () => {

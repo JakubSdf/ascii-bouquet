@@ -12,7 +12,7 @@ function route() {
   for (const overlay of document.querySelectorAll(".share-overlay")) overlay.dispatchEvent(new CustomEvent("share-close"));
   app.replaceChildren();
   window.scrollTo(0, 0);
-  const r = routeFor(location.hash);
+  const r = routeFor(location.hash, location.pathname, (window as Window & { __BOUQUET__?: string }).__BOUQUET__);
   unmount = r.kind === "builder" ? mountBuilder(app) : mountGift(app, r.config);
 }
 

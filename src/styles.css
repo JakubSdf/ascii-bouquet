@@ -1373,3 +1373,8 @@ textarea:focus-visible,
     display: none;
   }
 }
+
+.share-link.is-pending {
+  opacity: 0.55;
+  transition: opacity 200ms ease;
+}

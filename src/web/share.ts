@@ -4,11 +4,11 @@ import { h } from "./dom";
 import { qrPng, qrSvg } from "./qr";
 import { showToast } from "./toast";
 
-function copyButton(label: string, text: string, className: string, fallbackEl: HTMLElement, done: string): HTMLButtonElement {
+function copyButton(label: string, text: () => string, className: string, fallbackEl: HTMLElement, done: string): HTMLButtonElement {
   const btn = h("button", { class: className, type: "button" }, label);
   btn.addEventListener("click", async () => {
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(text());
       btn.textContent = "Copied ✓";
       showToast(done);
     } catch {
@@ -23,11 +23,26 @@ function copyButton(label: string, text: string, className: string, fallbackEl: 
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "you";
 
-export function openShareDialog(c: BouquetConfig, origin: string): () => void {
+export type Shortener = (code: string) => Promise<string | null>;
+
+export const shortenOnServer: Shortener = async (code) => {
+  try {
+    const res = await fetch("/api/b", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { id?: unknown };
+    return typeof data.id === "string" ? data.id : null;
+  } catch {
+    return null;
+  }
+};
+
+const terminalCommand = (origin: string, ref: string) => `curl -sN "${origin}/t/${ref}?cols=$(tput cols)&rows=$(tput lines)"`;
+
+export function openShareDialog(c: BouquetConfig, origin: string, shorten: Shortener = shortenOnServer): () => void {
   for (const old of document.querySelectorAll(".share-overlay")) old.dispatchEvent(new CustomEvent("share-close"));
   const code = encodeConfig(c);
-  const link = `${origin}/#${code}`;
-  const command = `curl -sN "${origin}/t/${code}?cols=$(tput cols)&rows=$(tput lines)"`;
+  let link = `${origin}/#${code}`;
+  let command = terminalCommand(origin, code);
   const name = c.to || "them";
   const opener = document.activeElement as HTMLElement | null;
 
@@ -41,6 +56,7 @@ export function openShareDialog(c: BouquetConfig, origin: string): () => void {
 
   const art = h("div", { class: "share-qr-art" });
   art.innerHTML = qrSvg(link);
+  const previewLink = h("a", { class: "btn", href: link, target: "_blank", rel: "noopener" }, `▶ Preview as ${c.to || "them"}`);
   const save = h("button", { class: "link-btn accent", type: "button" }, "↓ Save image");
   save.addEventListener("click", async () => {
     const blob = await qrPng(link).catch(() => null);
@@ -59,7 +75,7 @@ export function openShareDialog(c: BouquetConfig, origin: string): () => void {
     if (e.key === "Escape") close();
   };
 
-  const copyLink = copyButton("Copy", link, "btn btn-primary", linkEl, "Link copied ✓");
+  const copyLink = copyButton("Copy", () => link, "btn btn-primary", linkEl, "Link copied ✓");
   const dialog = h("div", { class: "share-dialog", role: "dialog", "aria-modal": "true", "aria-labelledby": "share-title" },
     h("h2", { id: "share-title" }, h("span", { class: "accent" }, "✿ "), "Your bouquet is ready"),
     h("p", { class: "muted" }, `Send this link to ${name}. Everything lives inside the link, nothing is stored on our side.`),
@@ -72,13 +88,13 @@ export function openShareDialog(c: BouquetConfig, origin: string): () => void {
         save,
         h("div", { class: "share-actions" },
           shareBtn,
-          h("a", { class: "btn", href: link, target: "_blank", rel: "noopener" }, `▶ Preview as ${c.to || "them"}`),
+          previewLink,
         ),
       ),
     ),
     h("div", { class: "share-term" },
       h("p", { class: "muted small" }, "For a nerd? They can open it in a terminal:"),
-      h("div", { class: "share-term-row" }, cmdEl, copyButton("Copy", command, "btn btn-small", cmdEl, "Command copied ✓")),
+      h("div", { class: "share-term-row" }, cmdEl, copyButton("Copy", () => command, "btn btn-small", cmdEl, "Command copied ✓")),
     ),
     h("button", { class: "share-back muted small", type: "button", onclick: close }, "← back to edit"),
   );
@@ -89,6 +105,17 @@ export function openShareDialog(c: BouquetConfig, origin: string): () => void {
   });
   document.addEventListener("keydown", onKey);
   document.body.append(overlay);
+  linkEl.classList.add("is-pending");
+  shorten(code).then((id) => {
+    linkEl.classList.remove("is-pending");
+    if (!id || !overlay.isConnected) return;
+    link = `${origin}/b/${id}`;
+    command = terminalCommand(origin, id);
+    linkEl.textContent = link;
+    cmdEl.textContent = command;
+    previewLink.href = link;
+    art.innerHTML = qrSvg(link);
+  });
   copyLink.focus();
   return close;
 }
