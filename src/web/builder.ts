@@ -41,6 +41,11 @@ function saveDraft(d: Draft) {
 
 const clip = (s: string, max: number) => [...s].slice(0, max).join("");
 
+export function snapPreview(height: number, velocity: number, min: number, max: number): number {
+  if (Math.abs(velocity) > 0.5) return velocity > 0 ? max : min;
+  return height - min < max - height ? min : max;
+}
+
 const glyphColor = (id: FlowerId) => FLOWERS[id].palette[FLOWERS[id].palette.length - 2];
 
 export function mountBuilder(root: HTMLElement): () => void {
@@ -166,6 +171,7 @@ export function mountBuilder(root: HTMLElement): () => void {
   );
   const progress = h("nav", { class: "progress", "aria-label": "Steps" }, ...tabs);
 
+  const handle = h("button", { class: "preview-handle", type: "button", "aria-label": "Resize the preview", "aria-expanded": "false" }, h("span", { class: "preview-grip" }));
   const previewTitle = h("span", { class: "muted small" });
   const previewMsg = h("p", { class: "serif preview-message" });
   const previewFrom = h("p", { class: "accent preview-from" });
@@ -175,6 +181,7 @@ export function mountBuilder(root: HTMLElement): () => void {
       h("div", { class: "window-bar" }, h("i", { class: "dot r" }), h("i", { class: "dot y" }), h("i", { class: "dot g" }), previewTitle),
       h("div", { class: "window-body" }, canvasHost, previewMsg, previewFrom),
     ),
+    handle,
     h("div", { class: "hints muted small" },
       h("span", {}, "↻ live preview"),
       h("button", { class: "link-btn", type: "button", onclick: () => (replay = { start: performance.now(), from: 0, dur: 5 }) }, "▶ replay bloom"),
@@ -201,6 +208,68 @@ export function mountBuilder(root: HTMLElement): () => void {
     ),
   );
   root.append(view);
+
+  const sizes = () => {
+    const vh = window.innerHeight || 700;
+    const min = Math.round(vh * 0.24);
+    return { min, max: Math.max(min + 80, Math.min(Math.round(vh * 0.68), vh - 250)) };
+  };
+  let expanded = false;
+  let drag: { y: number; h: number; t: number; v: number; moved: boolean } | null = null;
+  let suppressClick = false;
+  const setHeight = (px: number) => view.style.setProperty("--preview-h", `${Math.round(px)}px`);
+  const setExpanded = (on: boolean) => {
+    const { min, max } = sizes();
+    expanded = on;
+    setHeight(on ? max : min);
+    handle.setAttribute("aria-expanded", String(on));
+  };
+  handle.addEventListener("pointerdown", (e) => {
+    drag = { y: e.clientY, h: canvasHost.getBoundingClientRect().height, t: performance.now(), v: 0, moved: false };
+    handle.setPointerCapture?.(e.pointerId);
+  });
+  handle.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const dy = e.clientY - drag.y;
+    if (Math.abs(dy) > 6 && !drag.moved) {
+      drag.moved = true;
+      view.classList.add("is-dragging");
+    }
+    if (!drag.moved) return;
+    const { min, max } = sizes();
+    const now = performance.now();
+    const next = Math.min(max * 1.06, Math.max(min * 0.85, drag.h + dy));
+    const prev = parseFloat(view.style.getPropertyValue("--preview-h")) || drag.h;
+    drag.v = (next - prev) / Math.max(1, now - drag.t);
+    drag.t = now;
+    setHeight(next);
+  });
+  const endDrag = () => {
+    if (!drag) return;
+    if (drag.moved) {
+      const { min, max } = sizes();
+      const current = parseFloat(view.style.getPropertyValue("--preview-h")) || min;
+      view.classList.remove("is-dragging");
+      setExpanded(snapPreview(current, drag.v, min, max) === max);
+      suppressClick = true;
+    }
+    drag = null;
+  };
+  handle.addEventListener("pointerup", endDrag);
+  handle.addEventListener("pointercancel", endDrag);
+  handle.addEventListener("click", () => {
+    if (suppressClick) {
+      suppressClick = false;
+      return;
+    }
+    setExpanded(!expanded);
+  });
+  handle.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown") setExpanded(true);
+    else if (e.key === "ArrowUp") setExpanded(false);
+    else return;
+    e.preventDefault();
+  });
 
   function shake(el: HTMLElement) {
     el.classList.remove("shake");

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { DEFAULT_CONFIG, LIMITS, OCCASIONS } from "../src/core/catalog";
 import { decodeConfig } from "../src/core/codec";
-import { mountBuilder } from "../src/web/builder";
+import { mountBuilder, snapPreview } from "../src/web/builder";
 
 let root: HTMLElement;
 let unmount: () => void;
@@ -172,5 +172,24 @@ describe("mountBuilder", () => {
     unmount();
     unmount = mountBuilder(root);
     expect(field("to").value).toBe("Eva");
+  });
+});
+
+describe("resizable preview", () => {
+  test("snaps to the nearer size, or follows a quick flick", () => {
+    expect(snapPreview(200, 0, 160, 480)).toBe(160);
+    expect(snapPreview(400, 0, 160, 480)).toBe(480);
+    expect(snapPreview(200, 0.8, 160, 480)).toBe(480);
+    expect(snapPreview(420, -0.8, 160, 480)).toBe(160);
+  });
+
+  test("tapping the handle toggles between small and large", () => {
+    const handle = root.querySelector<HTMLButtonElement>(".preview-handle")!;
+    expect(handle.getAttribute("aria-expanded")).toBe("false");
+    handle.click();
+    expect(handle.getAttribute("aria-expanded")).toBe("true");
+    expect(root.querySelector<HTMLElement>(".builder")!.style.getPropertyValue("--preview-h")).not.toBe("");
+    handle.click();
+    expect(handle.getAttribute("aria-expanded")).toBe("false");
   });
 });
