@@ -7,9 +7,10 @@ import { GridCanvas } from "./canvas";
 import { h, onFrame, prefersReducedMotion } from "./dom";
 import { REPO_URL } from "./links";
 import { openShareDialog } from "./share";
+import { showToast } from "./toast";
 
 const DRAFT_KEY = "ascii-bouquet:draft";
-const STEPS = ["Flowers", "Wrap & palette", "Occasion", "Message"];
+const STEPS = ["Flowers", "Wrap", "Occasion", "Message"];
 
 interface Draft {
   config: BouquetConfig;
@@ -40,6 +41,8 @@ function saveDraft(d: Draft) {
 
 const clip = (s: string, max: number) => [...s].slice(0, max).join("");
 
+const glyphColor = (id: FlowerId) => FLOWERS[id].palette[FLOWERS[id].palette.length - 2];
+
 export function mountBuilder(root: HTMLElement): () => void {
   const draft = loadDraft();
   const state = draft.config;
@@ -49,31 +52,35 @@ export function mountBuilder(root: HTMLElement): () => void {
   const reduced = prefersReducedMotion();
 
   const persist = () => saveDraft({ config: state, touched: draft.touched });
+  const totalCount = () => state.flowers.reduce((n, f) => n + f.count, 0);
 
   const peek = flowerPeek();
-  const flowerCards = new Map<FlowerId, { card: HTMLElement; toggle: HTMLButtonElement; minus: HTMLButtonElement; plus: HTMLButtonElement; qty: HTMLElement }>();
+  const trayCount = h("span", { class: "tray-count" });
+  const traySlots = h("div", { class: "tray-slots" });
+  const tray = h("div", { class: "tray" },
+    h("div", { class: "tray-head" }, h("span", { class: "strong" }, "Your bouquet"), trayCount),
+    traySlots,
+    h("p", { class: "muted small tray-hint" }, "Tap a flower to add it. Tap a stem above to take it out."),
+  );
+
+  const flowerCards = new Map<FlowerId, { card: HTMLButtonElement; count: HTMLElement }>();
   const flowerGrid = h("div", { class: "flower-grid" });
-  const flowerTotal = h("span", { class: "flower-total muted small" });
   for (const [id, spec] of Object.entries(FLOWERS) as [FlowerId, (typeof FLOWERS)[FlowerId]][]) {
-    const toggle = h("button", { class: "flower-toggle", type: "button", "aria-pressed": "false" },
-      h("span", { class: "flower-glyph", style: `color:${spec.palette[spec.palette.length - 2]}` }, spec.glyph),
+    const count = h("span", { class: "flower-count" });
+    const card = h("button", { class: "flower", type: "button", "data-id": id, "aria-pressed": "false", "aria-label": `Add a ${spec.name.toLowerCase()}` },
+      h("span", { class: "flower-glyph", style: `color:${glyphColor(id)}` }, spec.glyph),
       h("span", { class: "flower-name" }, spec.name),
       h("span", { class: "flower-meaning" }, spec.meaning),
+      count,
     );
-    const minus = h("button", { class: "flower-minus", type: "button", "aria-label": `One ${spec.name.toLowerCase()} less` }, "−");
-    const plus = h("button", { class: "flower-plus", type: "button", "aria-label": `One ${spec.name.toLowerCase()} more` }, "+");
-    const qty = h("span", { class: "flower-qty", "aria-live": "polite" });
-    const card = h("div", { class: "flower", "data-id": id }, toggle, h("div", { class: "flower-stepper" }, minus, qty, plus));
-    toggle.addEventListener("click", () => toggleFlower(id, card));
+    card.addEventListener("click", () => addFlower(id, card));
     card.addEventListener("pointerenter", (e) => {
       if ((e as PointerEvent).pointerType !== "touch") peek.show(id, card);
     });
     card.addEventListener("pointerleave", () => peek.hide());
-    toggle.addEventListener("focus", () => peek.show(id, card));
-    toggle.addEventListener("blur", () => peek.hide());
-    minus.addEventListener("click", () => adjustCount(id, -1));
-    plus.addEventListener("click", () => adjustCount(id, 1, card));
-    flowerCards.set(id, { card, toggle, minus, plus, qty });
+    card.addEventListener("focus", () => peek.show(id, card));
+    card.addEventListener("blur", () => peek.hide());
+    flowerCards.set(id, { card, count });
     flowerGrid.append(card);
   }
 
@@ -126,38 +133,31 @@ export function mountBuilder(root: HTMLElement): () => void {
     changed(false);
   });
 
-  const summaries: HTMLElement[] = [];
-  const heads: HTMLButtonElement[] = [];
-  const section = (i: number, hint: string | null, ...content: Node[]) => {
-    const summary = h("span", { class: "step-summary" });
-    const head = h("button", { class: "step-head", type: "button", "aria-expanded": "false", onclick: () => go(i) },
-      h("span", { class: "accent step-num" }, String(i + 1).padStart(2, "0")),
-      h("span", { class: "step-name" }, STEPS[i]),
-      hint ? h("span", { class: "muted small step-hint" }, hint) : null,
-      summary,
-      h("span", { class: "step-chevron", "aria-hidden": "true" }, "›"),
-    );
-    summaries.push(summary);
-    heads.push(head);
-    return h("section", { class: "step", "data-step": i }, head, h("div", { class: "step-body" }, ...content));
-  };
+  const STEP_HINTS = ["Pick up to 8 flowers.", "Choose the paper and ribbon.", "What's the occasion?", "Who is it for, and what do you want to say?"];
+  const section = (i: number, ...content: Node[]) =>
+    h("section", { class: "step", "data-step": i }, h("p", { class: "step-hint muted" }, STEP_HINTS[i]), ...content);
 
   const steps = [
-    section(0, "up to 8 in total", flowerTotal, flowerGrid),
-    section(1, null, swatchRow),
-    section(2, null, chipRow),
-    section(3, null,
+    section(0, tray, flowerGrid),
+    section(1, swatchRow),
+    section(2, chipRow),
+    section(3,
       h("div", { class: "field-row" }, textField("to", "To", "Anna"), textField("from", "From", "Tom")),
       h("label", { class: "field" }, h("span", { class: "field-label" }, "Note ", counter), messageInput),
     ),
   ];
 
   const create = () => openShareDialog(state, location.origin);
-  const createBtn = h("button", { class: "btn btn-primary create", type: "button", onclick: create }, "Create link →");
   const backBtn = h("button", { class: "btn", type: "button", "aria-label": "Previous step", onclick: () => go(step - 1) }, "←");
   const nextBtn = h("button", { class: "btn btn-primary", type: "button", onclick: () => (step < STEPS.length - 1 ? go(step + 1) : create()) });
-  const progress = h("div", { class: "progress" });
-  const progressLabel = h("span", { class: "progress-label" });
+  const tabs = STEPS.map((name, i) =>
+    h("button", { class: "progress-step", type: "button", onclick: () => go(i) },
+      h("i", { "aria-hidden": "true" }),
+      h("span", { class: "progress-num" }, String(i + 1)),
+      h("span", { class: "progress-name" }, name),
+    ),
+  );
+  const progress = h("nav", { class: "progress", "aria-label": "Steps" }, ...tabs);
 
   const previewTitle = h("span", { class: "muted small" });
   const previewMsg = h("p", { class: "serif preview-message" });
@@ -185,11 +185,9 @@ export function mountBuilder(root: HTMLElement): () => void {
     ),
     h("div", { class: "builder-body" },
       h("aside", { class: "controls" },
-        h("div", { class: "intro" }, h("h1", {}, "Make someone a bouquet."), h("p", { class: "muted" }, "Pick flowers, write a note, send a link.")),
-        h("div", { class: "wizard" }, progress, progressLabel),
-        ...steps,
-        h("div", { class: "spacer" }),
-        createBtn,
+        h("div", { class: "intro" }, h("h1", {}, "Make someone a bouquet."), h("p", { class: "muted" }, "Four quick steps, then send a link.")),
+        progress,
+        h("div", { class: "steps" }, ...steps),
         h("div", { class: "bottom-bar" }, backBtn, nextBtn),
       ),
       preview,
@@ -197,36 +195,36 @@ export function mountBuilder(root: HTMLElement): () => void {
   );
   root.append(view);
 
-  const totalCount = () => state.flowers.reduce((n, f) => n + f.count, 0);
-
   function shake(el: HTMLElement) {
     el.classList.remove("shake");
     void el.offsetWidth;
     el.classList.add("shake");
   }
 
-  function toggleFlower(id: FlowerId, card: HTMLElement) {
-    const i = state.flowers.findIndex((f) => f.id === id);
-    if (i >= 0) {
-      if (state.flowers.length === 1) return shake(card);
-      state.flowers.splice(i, 1);
-    } else {
-      if (totalCount() >= LIMITS.maxTotal) return shake(card);
-      state.flowers.push({ id, count: 1 });
+  function addFlower(id: FlowerId, card: HTMLElement) {
+    if (totalCount() >= LIMITS.maxTotal) {
+      shake(card);
+      shake(traySlots);
+      showToast(`The bouquet is full (${LIMITS.maxTotal}/${LIMITS.maxTotal}). Tap a stem to take one out.`);
+      return;
     }
+    const f = state.flowers.find((x) => x.id === id);
+    if (f) f.count += 1;
+    else state.flowers.push({ id, count: 1 });
     changed(true);
   }
 
-  function adjustCount(id: FlowerId, delta: number, card?: HTMLElement) {
-    const i = state.flowers.findIndex((f) => f.id === id);
+  function removeStem(id: FlowerId, slot: HTMLElement) {
+    const i = state.flowers.findIndex((x) => x.id === id);
     if (i < 0) return;
+    if (totalCount() <= 1) {
+      shake(slot);
+      showToast("A bouquet needs at least one flower.");
+      return;
+    }
     const f = state.flowers[i];
-    if (delta > 0) {
-      if (totalCount() >= LIMITS.maxTotal) return card && shake(card);
-      f.count += 1;
-    } else if (f.count > 1) f.count -= 1;
-    else if (state.flowers.length > 1) state.flowers.splice(i, 1);
-    else return;
+    if (f.count > 1) f.count -= 1;
+    else state.flowers.splice(i, 1);
     changed(true);
   }
 
@@ -244,16 +242,30 @@ export function mountBuilder(root: HTMLElement): () => void {
     sync();
   }
 
+  function renderTray() {
+    const stems = state.flowers.flatMap((f) => Array.from({ length: f.count }, () => f.id));
+    traySlots.replaceChildren(
+      ...Array.from({ length: LIMITS.maxTotal }, (_, i) => {
+        const id = stems[i];
+        if (!id) return h("span", { class: "tray-slot", "aria-hidden": "true" });
+        const slot = h("button", { class: "tray-slot is-filled", type: "button", "data-id": id, "aria-label": `Take out a ${FLOWERS[id].name.toLowerCase()}`, title: `Take out ${FLOWERS[id].name.toLowerCase()}` },
+          h("span", { style: `color:${glyphColor(id)}` }, FLOWERS[id].glyph),
+        );
+        slot.addEventListener("click", () => removeStem(id, slot));
+        return slot;
+      }),
+    );
+  }
+
   function sync() {
     const total = totalCount();
-    flowerTotal.textContent = `${total} / ${LIMITS.maxTotal} flowers`;
+    trayCount.textContent = `${total} / ${LIMITS.maxTotal}`;
+    renderTray();
     for (const [id, c] of flowerCards) {
       const f = state.flowers.find((x) => x.id === id);
-      c.card.classList.toggle("is-picked", !!f);
-      c.toggle.setAttribute("aria-pressed", String(!!f));
-      c.qty.textContent = f ? String(f.count) : "";
-      c.plus.disabled = !f || total >= LIMITS.maxTotal;
-      c.minus.disabled = !f || (f.count === 1 && state.flowers.length === 1);
+      c.card.setAttribute("aria-pressed", String(!!f));
+      c.count.textContent = f ? `×${f.count}` : "";
+      c.card.classList.toggle("is-full", total >= LIMITS.maxTotal);
     }
     for (const [id, btn] of swatches) btn.setAttribute("aria-pressed", String(id === state.wrap));
     wrapLabel.textContent = WRAPS[state.wrap].label;
@@ -263,13 +275,12 @@ export function mountBuilder(root: HTMLElement): () => void {
     previewMsg.textContent = state.message;
     previewFrom.textContent = state.from ? `— ${state.from}` : "";
     steps.forEach((s, i) => s.classList.toggle("is-active", i === step));
-    heads.forEach((b, i) => b.setAttribute("aria-expanded", String(i === step)));
-    summaries[0].textContent = `${state.flowers.map((f) => FLOWERS[f.id].name + (f.count > 1 ? ` ×${f.count}` : "")).join(", ")} · ${total}/${LIMITS.maxTotal}`;
-    summaries[1].textContent = WRAPS[state.wrap].label;
-    summaries[2].textContent = `${OCCASIONS[state.occasion].icon} ${OCCASIONS[state.occasion].label}`;
-    summaries[3].textContent = [state.to && `to ${state.to}`, state.message && `“${state.message}”`].filter(Boolean).join(" · ") || "add a note";
-    progress.replaceChildren(...STEPS.map((_, i) => h("i", { class: i === step ? "on" : i < step ? "done" : "" })));
-    progressLabel.textContent = `${step + 1} / ${STEPS.length}  ${STEPS[step]}`;
+    tabs.forEach((t, i) => {
+      t.classList.toggle("on", i === step);
+      t.classList.toggle("done", i < step);
+      if (i === step) t.setAttribute("aria-current", "step");
+      else t.removeAttribute("aria-current");
+    });
     backBtn.disabled = step === 0;
     nextBtn.textContent = step < STEPS.length - 1 ? `Next: ${STEPS[step + 1].toLowerCase()} →` : "Create link →";
   }

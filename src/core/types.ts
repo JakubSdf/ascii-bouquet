@@ -1,4 +1,4 @@
-export type FlowerId = "rose" | "daisy" | "tulip" | "sunflower" | "lavender" | "lily" | "babysbreath";
+export type FlowerId = "rose" | "daisy" | "tulip" | "sunflower" | "lavender" | "lily" | "forgetmenot" | "babysbreath";
 export type WrapId = "pink" | "red" | "lilac" | "gold" | "sage" | "white";
 export type OccasionId = "love" | "birthday" | "sorry" | "thanks" | "justbecause";
 

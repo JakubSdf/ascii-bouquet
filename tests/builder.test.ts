@@ -18,13 +18,14 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-const card = (id: string) => root.querySelector<HTMLElement>(`.flower[data-id="${id}"]`)!;
-const toggle = (id: string) => card(id).querySelector<HTMLButtonElement>(".flower-toggle")!;
-const plus = (id: string) => card(id).querySelector<HTMLButtonElement>(".flower-plus")!;
-const minus = (id: string) => card(id).querySelector<HTMLButtonElement>(".flower-minus")!;
-const qty = (id: string) => card(id).querySelector(".flower-qty")!.textContent;
-const picked = (id: string) => toggle(id).getAttribute("aria-pressed") === "true";
-const total = () => root.querySelector(".flower-total")!.textContent;
+const card = (id: string) => root.querySelector<HTMLButtonElement>(`.flower[data-id="${id}"]`)!;
+const badge = (id: string) => card(id).querySelector(".flower-count")!.textContent;
+const slots = () => [...root.querySelectorAll<HTMLElement>(".tray-slot")];
+const stems = () => [...root.querySelectorAll<HTMLButtonElement>(".tray-slot.is-filled")];
+const stemsOf = (id: string) => stems().filter((b) => b.dataset.id === id);
+const total = () => root.querySelector(".tray-count")!.textContent;
+const tab = (i: number) => root.querySelectorAll<HTMLButtonElement>(".progress-step")[i];
+const activeStep = () => root.querySelector(".step.is-active")!.getAttribute("data-step");
 const button = (text: string) => [...document.querySelectorAll("button")].find((b) => b.textContent?.includes(text)) as HTMLButtonElement;
 const field = (name: string) => root.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${name}"]`)!;
 const type = (el: HTMLInputElement | HTMLTextAreaElement, value: string) => {
@@ -32,6 +33,7 @@ const type = (el: HTMLInputElement | HTMLTextAreaElement, value: string) => {
   el.dispatchEvent(new Event("input", { bubbles: true }));
 };
 const shareCode = () => {
+  tab(3).click();
   button("Create link").click();
   const link = document.querySelector(".share-link")!.textContent!;
   return decodeConfig(link.split("#")[1]);
@@ -39,69 +41,56 @@ const shareCode = () => {
 
 describe("mountBuilder", () => {
   test("starts from the default bouquet", () => {
-    expect(picked("rose")).toBe(true);
-    expect(qty("rose")).toBe("2");
-    expect(picked("tulip")).toBe(false);
-    expect(total()).toBe("4 / 8 flowers");
+    expect(slots().length).toBe(8);
+    expect(stems().length).toBe(4);
+    expect(stemsOf("rose").length).toBe(2);
+    expect(badge("rose")).toBe("×2");
+    expect(badge("tulip")).toBe("");
+    expect(total()).toBe("4 / 8");
   });
 
-  test("tap adds one, plus and minus change the count, minus at one removes", () => {
-    toggle("tulip").click();
-    expect(qty("tulip")).toBe("1");
-    plus("tulip").click();
-    plus("tulip").click();
-    expect(qty("tulip")).toBe("3");
-    minus("tulip").click();
-    expect(qty("tulip")).toBe("2");
-    minus("tulip").click();
-    minus("tulip").click();
-    expect(picked("tulip")).toBe(false);
+  test("tapping a flower adds one stem", () => {
+    card("tulip").click();
+    card("tulip").click();
+    expect(stemsOf("tulip").length).toBe(2);
+    expect(badge("tulip")).toBe("×2");
+    expect(total()).toBe("6 / 8");
   });
 
-  test("tapping a picked flower removes it", () => {
-    toggle("daisy").click();
-    expect(picked("daisy")).toBe(false);
-    expect(total()).toBe("3 / 8 flowers");
+  test("tapping a stem in the bouquet removes it", () => {
+    stemsOf("daisy")[0].click();
+    expect(stemsOf("daisy").length).toBe(0);
+    expect(card("daisy").getAttribute("aria-pressed")).toBe("false");
+    stemsOf("rose")[0].click();
+    expect(stemsOf("rose").length).toBe(1);
   });
 
-  test("never more than eight flowers in total", () => {
-    for (let i = 0; i < 10; i++) plus("rose").click();
-    expect(total()).toBe("8 / 8 flowers");
-    expect(qty("rose")).toBe("6");
-    expect(plus("rose").disabled).toBe(true);
-    toggle("lily").click();
-    expect(picked("lily")).toBe(false);
+  test("a full bouquet ignores more flowers and says why", () => {
+    for (let i = 0; i < 6; i++) card("lily").click();
+    expect(total()).toBe("8 / 8");
+    expect(stemsOf("lily").length).toBe(4);
+    expect(document.querySelector(".toast")!.textContent).toContain("full (8/8)");
   });
 
   test("eight of the same flower", () => {
-    toggle("daisy").click();
-    toggle("sunflower").click();
-    for (let i = 0; i < 6; i++) plus("rose").click();
-    expect(qty("rose")).toBe("8");
+    stemsOf("daisy")[0].click();
+    stemsOf("sunflower")[0].click();
+    for (let i = 0; i < 6; i++) card("rose").click();
+    expect(stemsOf("rose").length).toBe(8);
     expect(shareCode()!.flowers).toEqual([{ id: "rose", count: 8 }]);
   });
 
-  test("the last flower cannot be removed", () => {
-    toggle("daisy").click();
-    toggle("sunflower").click();
-    toggle("rose").click();
-    minus("rose").click();
-    minus("rose").click();
-    expect(picked("rose")).toBe(true);
-    expect(qty("rose")).toBe("1");
-    expect(minus("rose").disabled).toBe(true);
+  test("the last stem cannot be removed", () => {
+    stemsOf("daisy")[0].click();
+    stemsOf("sunflower")[0].click();
+    stemsOf("rose")[0].click();
+    stemsOf("rose")[0].click();
+    expect(stems().length).toBe(1);
   });
 
-  test("steps fold like an accordion with summaries", () => {
-    const steps = () => [...root.querySelectorAll<HTMLElement>(".step")];
-    expect(steps()[0].classList.contains("is-active")).toBe(true);
-    root.querySelector<HTMLButtonElement>('.step[data-step="3"] .step-head')!.click();
-    expect(steps()[3].classList.contains("is-active")).toBe(true);
-    expect(steps()[0].classList.contains("is-active")).toBe(false);
-    expect(steps()[0].querySelector(".step-summary")!.textContent).toBe("Rose ×2, Daisy, Sunflower · 4/8");
-    expect(steps()[1].querySelector(".step-summary")!.textContent).toBe("pink ribbon");
-    expect(steps()[2].querySelector(".step-summary")!.textContent).toBe("♥ Love");
-    expect(root.querySelector('.step[data-step="3"] .step-head')!.getAttribute("aria-expanded")).toBe("true");
+  test("forget-me-not is offered", () => {
+    card("forgetmenot").click();
+    expect(stemsOf("forgetmenot").length).toBe(1);
   });
 
   test("hovering a flower previews it", () => {
@@ -114,9 +103,17 @@ describe("mountBuilder", () => {
     expect(peek().hidden).toBe(true);
   });
 
-  test("lily is offered", () => {
-    toggle("lily").click();
-    expect(picked("lily")).toBe(true);
+  test("a step-by-step wizard that can always go back", () => {
+    expect(activeStep()).toBe("0");
+    button("Next").click();
+    expect(activeStep()).toBe("1");
+    expect(tab(0).classList.contains("done")).toBe(true);
+    tab(3).click();
+    expect(activeStep()).toBe("3");
+    expect(button("Create link")).toBeTruthy();
+    tab(0).click();
+    expect(activeStep()).toBe("0");
+    expect(tab(0).getAttribute("aria-current")).toBe("step");
   });
 
   test("message is limited to 120 characters", () => {
@@ -143,6 +140,7 @@ describe("mountBuilder", () => {
   });
 
   test("escape closes the share dialog", () => {
+    tab(3).click();
     button("Create link").click();
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     expect(document.querySelector(".share-dialog")).toBeNull();

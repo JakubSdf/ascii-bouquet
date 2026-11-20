@@ -2,16 +2,19 @@ import { encodeConfig } from "../core/codec";
 import type { BouquetConfig } from "../core/types";
 import { h } from "./dom";
 import { qrPng, qrSvg } from "./qr";
+import { showToast } from "./toast";
 
-function copyButton(label: string, text: string, className: string, fallbackEl: HTMLElement): HTMLButtonElement {
+function copyButton(label: string, text: string, className: string, fallbackEl: HTMLElement, done: string): HTMLButtonElement {
   const btn = h("button", { class: className, type: "button" }, label);
   btn.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(text);
       btn.textContent = "Copied ✓";
+      showToast(done);
     } catch {
       getSelection()?.selectAllChildren(fallbackEl);
       btn.textContent = "Press ⌘C";
+      showToast("Selected, press ⌘C or Ctrl+C to copy");
     }
     setTimeout(() => (btn.textContent = label), 2000);
   });
@@ -56,7 +59,7 @@ export function openShareDialog(c: BouquetConfig, origin: string): () => void {
     if (e.key === "Escape") close();
   };
 
-  const copyLink = copyButton("Copy", link, "btn btn-primary", linkEl);
+  const copyLink = copyButton("Copy", link, "btn btn-primary", linkEl, "Link copied ✓");
   const dialog = h("div", { class: "share-dialog", role: "dialog", "aria-modal": "true", "aria-labelledby": "share-title" },
     h("h2", { id: "share-title" }, h("span", { class: "accent" }, "✿ "), "Your bouquet is ready"),
     h("p", { class: "muted" }, `Send this link to ${name}. Everything lives inside the link, nothing is stored on our side.`),
@@ -75,7 +78,7 @@ export function openShareDialog(c: BouquetConfig, origin: string): () => void {
     ),
     h("div", { class: "share-term" },
       h("p", { class: "muted small" }, "For a nerd? They can open it in a terminal:"),
-      h("div", { class: "share-term-row" }, cmdEl, copyButton("Copy", command, "btn btn-small", cmdEl)),
+      h("div", { class: "share-term-row" }, cmdEl, copyButton("Copy", command, "btn btn-small", cmdEl, "Command copied ✓")),
     ),
     h("button", { class: "share-back muted small", type: "button", onclick: close }, "← back to edit"),
   );

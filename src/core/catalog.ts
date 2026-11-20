@@ -10,6 +10,7 @@ export const FLOWERS: Record<FlowerId, FlowerSpec> = {
   sunflower: { name: "Sunflower", meaning: "adoration", glyph: "o", code: "s", kind: "disc", petals: 12, palette: ["#af8700", "#d7af00", "#ffd700", "#ffff00", "#ffff5f", "#ffffaf"], center: DARK_CENTER },
   lavender: { name: "Lavender", meaning: "devotion", glyph: "¦", code: "l", kind: "spike", petals: 0, palette: ["#5f0087", "#5f00af", "#875faf", "#af87d7", "#d7afff", "#eeddff"], center: GOLD_CENTER },
   lily: { name: "Lily", meaning: "renewal", glyph: "%", code: "i", kind: "lily", petals: 6, palette: ["#875f87", "#af87af", "#d7afd7", "#ffd7ff", "#ffeeff", "#ffffff"], center: ["#875f00", "#af5f00", "#d75f00", "#ff8700", "#ffaf5f"] },
+  forgetmenot: { name: "Forget-me-not", meaning: "remember me", glyph: "¤", code: "f", kind: "disc", petals: 5, palette: ["#00005f", "#005f87", "#0087af", "#5fafd7", "#87d7ff", "#d7f0ff"], center: ["#875f00", "#af8700", "#d7af00", "#ffd700", "#ffff87"] },
   babysbreath: { name: "Baby's breath", meaning: "forever", glyph: "·", code: "b", kind: "cloud", petals: 0, palette: ["#bcbcbc", "#d0d0d0", "#e4e4e4", "#eeeeee", "#ffffff", "#ffffff"], center: GOLD_CENTER },
 };
 

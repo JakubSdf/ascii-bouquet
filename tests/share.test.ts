@@ -13,6 +13,18 @@ describe("openShareDialog", () => {
     expect(cmd).toMatch(/^curl -sN "https:\/\/x\.test\/t\/v1\.[A-Za-z0-9_-]+\?cols=\$\(tput cols\)&rows=\$\(tput lines\)"$/);
   });
 
+  test("copying the link shows a toast", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    openShareDialog(DEFAULT_CONFIG, "https://x.test");
+    document.querySelector<HTMLButtonElement>(".share-row button")!.click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(writeText.mock.calls[0][0]).toMatch(/^https:\/\/x\.test\/#v1\./);
+    expect(document.querySelector(".toast")!.textContent).toBe("Link copied ✓");
+    vi.unstubAllGlobals();
+  });
+
   test("QR code is shown right away", () => {
     openShareDialog(DEFAULT_CONFIG, "https://x.test");
     expect(document.querySelector(".share-qr svg")).not.toBeNull();
@@ -27,6 +39,8 @@ describe("openShareDialog", () => {
     await Promise.resolve();
     expect(writeText).toHaveBeenCalledTimes(1);
     expect(writeText.mock.calls[0][0]).toMatch(/^curl -sN "https:\/\/x\.test\/t\/v1\./);
+    await Promise.resolve();
+    expect(document.querySelector(".toast")!.textContent).toBe("Command copied ✓");
     vi.unstubAllGlobals();
   });
 

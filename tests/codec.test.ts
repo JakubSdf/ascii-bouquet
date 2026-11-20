@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { DEFAULT_CONFIG, LIMITS } from "../src/core/catalog";
+import { DEFAULT_CONFIG, FLOWERS, LIMITS } from "../src/core/catalog";
 import { decodeConfig, encodeConfig } from "../src/core/codec";
 import type { BouquetConfig } from "../src/core/types";
 
@@ -55,6 +55,13 @@ describe("codec", () => {
     expect(decodeConfig(encodeConfig(c))).toEqual(c);
     const over = ["r:12", "pink", "love", "", "", ""];
     expect(decodeConfig("v1." + Buffer.from(JSON.stringify(over)).toString("base64url"))!.flowers).toEqual([{ id: "rose", count: 8 }]);
+  });
+
+  test("eight kinds of flowers with unique link codes", () => {
+    expect(Object.keys(FLOWERS).length).toBe(8);
+    expect(new Set(Object.values(FLOWERS).map((f) => f.code)).size).toBe(8);
+    const c = { ...DEFAULT_CONFIG, flowers: [{ id: "forgetmenot" as const, count: 2 }] };
+    expect(decodeConfig(encodeConfig(c))).toEqual(c);
   });
 
   test("lily round-trips", () => {
